@@ -19,9 +19,24 @@ from datetime import datetime
 #url variable, used to call what webpage to visit
 URL= ""
 
-#compile webdriver / browser for selenium to run
-driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+#read setting file for setup
+#opens file in read mode
+settingsFile = open("settings.txt", mode = "r")
+lines = []
+for line in settingsFile:
+    lines.append(line)
+    print(line)
 
+
+
+#setting up where to save images etc.
+prefs = {"downlaod.default_directory": lines[2]}
+options = Options()
+options.add_experimental_option("prefs", prefs)
+
+#compile webdriver / browser for selenium to run
+#driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()), options = options)
 
 # %% Open webpage and run start scraping
 
@@ -69,10 +84,30 @@ for prod in products:
 
 #%% go to next page of search
 
+from selenium.webdriver.common.action_chains import ActionChains
+thumbnails = []
+#setup action driver
+ac = ActionChains(driver)
+#for image thumbnail locations
+#//*[@class='a-spacing-small item imageThumbnail a-declarative']
+thumbnails = driver.find_elements(By.XPATH, "//*[@class='a-spacing-small item imageThumbnail a-declarative']")
+#hover over thumbnails to load high-res images into html code
+for thumbnail in thumbnails:
+    #moves a 'mouse' over the thumbnail elements
+    ac.move_to_element(thumbnail).perform()
 
-
+highResImgHrefs = []
+#for full size images
+#//*[@id='main-image-container']/ul/li/span/span/div/img
+highResImgs = driver.find_elements(By.XPATH, "//*[@id='main-image-container']/ul/li/span/span/div/img")
+for img in highResImgs:
+    highResImgHrefs.append(img.get_attribute("src"))
+    print(img.get_attribute("src"))
 
 #%% go to product page
+
+#Counting the number of products
+n = 0
 
 #loop through all the products
 for link in hrefs:
@@ -188,6 +223,15 @@ for link in hrefs:
     #asin = driver.find_element(By.XPATH, "//*[@id='detailBullets_feature_div']/ul/li[4]/span/span[2]").text
     #print(asin)
 
+    #proof screenshot
+    n += 1
+    #formats the number to be a 6 digit number eg 1 will be 000001
+    number = "{0:0=6d}".format(n)
+    #create the output name
+    outputLocation = "Product Screenshots/"+ "proof"+ number + ".png"
+    print(outputLocation)
+    driver.save_screenshot(outputLocation)
+    
 
     print("-------------------------------------")
     time.sleep(1)

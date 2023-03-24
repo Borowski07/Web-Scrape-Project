@@ -1,0 +1,4 @@
+#setting info etc.
+#file path to save images to
+C:/Users/borow/Downloads/WebScrape/
+C:\Users\borow\Downloads\WebScrape\

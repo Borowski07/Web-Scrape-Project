@@ -85,6 +85,7 @@ for prod in products:
 #%% go to next page of search
 
 from selenium.webdriver.common.action_chains import ActionChains
+
 thumbnails = []
 #setup action driver
 ac = ActionChains(driver)
@@ -97,12 +98,65 @@ for thumbnail in thumbnails:
     ac.move_to_element(thumbnail).perform()
 
 highResImgHrefs = []
-#for full size images
-#//*[@id='main-image-container']/ul/li/span/span/div/img
+#search for full size images
 highResImgs = driver.find_elements(By.XPATH, "//*[@id='main-image-container']/ul/li/span/span/div/img")
 for img in highResImgs:
     highResImgHrefs.append(img.get_attribute("src"))
     print(img.get_attribute("src"))
+
+x = 0
+for imgRef in highResImgHrefs:   
+    #going to image webpage 
+    driver.get(imgRef)
+
+    x += 1
+    #formats the number to be a 6 digit number eg 1 will be 000001
+    number = "{0:0=2d}".format(x)
+    #create the output name
+    outputLocation = "Product Images/"+ "image"+ number + ".png"
+    
+    #saving image thats found on image webpage
+    with open (outputLocation, 'wb') as file:
+        file.write(driver.find_element(By.XPATH, "//body/img").screenshot_as_png)    
+
+#%% Image collection
+
+def imageCollection():
+    from selenium.webdriver.common.action_chains import ActionChains
+
+    thumbnails = []
+    #setup action driver
+    ac = ActionChains(driver)
+    #for image thumbnail locations
+    #//*[@class='a-spacing-small item imageThumbnail a-declarative']
+    thumbnails = driver.find_elements(By.XPATH, "//*[@class='a-spacing-small item imageThumbnail a-declarative']")
+    #hover over thumbnails to load high-res images into html code
+    for thumbnail in thumbnails:
+        #moves a 'mouse' over the thumbnail elements
+        ac.move_to_element(thumbnail).perform()
+
+    highResImgHrefs = []
+    #search for full size images
+    highResImgs = driver.find_elements(By.XPATH, "//*[@id='main-image-container']/ul/li/span/span/div/img")
+    for img in highResImgs:
+        highResImgHrefs.append(img.get_attribute("src"))
+        print(img.get_attribute("src"))
+
+    x = 0
+    for imgRef in highResImgHrefs:   
+        #going to image webpage 
+        driver.get(imgRef)
+
+        x += 1
+        #formats the number to be a 6 digit number eg 1 will be 000001
+        number = "{0:0=2d}".format(x)
+        #create the output name
+        outputLocation = "Product Images/"+ "image"+ number + ".png"
+        
+        #saving image thats found on image webpage
+        with open (outputLocation, 'wb') as file:
+            file.write(driver.find_element(By.XPATH, "//body/img").screenshot_as_png)    
+
 
 #%% go to product page
 
@@ -232,6 +286,8 @@ for link in hrefs:
     print(outputLocation)
     driver.save_screenshot(outputLocation)
     
+
+    imageCollection()
 
     print("-------------------------------------")
     time.sleep(1)

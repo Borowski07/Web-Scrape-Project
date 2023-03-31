@@ -84,40 +84,8 @@ for prod in products:
 
 #%% go to next page of search
 
-from selenium.webdriver.common.action_chains import ActionChains
 
-thumbnails = []
-#setup action driver
-ac = ActionChains(driver)
-#for image thumbnail locations
-#//*[@class='a-spacing-small item imageThumbnail a-declarative']
-thumbnails = driver.find_elements(By.XPATH, "//*[@class='a-spacing-small item imageThumbnail a-declarative']")
-#hover over thumbnails to load high-res images into html code
-for thumbnail in thumbnails:
-    #moves a 'mouse' over the thumbnail elements
-    ac.move_to_element(thumbnail).perform()
 
-highResImgHrefs = []
-#search for full size images
-highResImgs = driver.find_elements(By.XPATH, "//*[@id='main-image-container']/ul/li/span/span/div/img")
-for img in highResImgs:
-    highResImgHrefs.append(img.get_attribute("src"))
-    print(img.get_attribute("src"))
-
-x = 0
-for imgRef in highResImgHrefs:   
-    #going to image webpage 
-    driver.get(imgRef)
-
-    x += 1
-    #formats the number to be a 6 digit number eg 1 will be 000001
-    number = "{0:0=2d}".format(x)
-    #create the output name
-    outputLocation = "Product Images/"+ "image"+ number + ".png"
-    
-    #saving image thats found on image webpage
-    with open (outputLocation, 'wb') as file:
-        file.write(driver.find_element(By.XPATH, "//body/img").screenshot_as_png)    
 
 #%% Image collection
 
@@ -158,6 +126,48 @@ def imageCollection():
             file.write(driver.find_element(By.XPATH, "//body/img").screenshot_as_png)    
 
 
+
+#%% delete
+def Delete_Image(file):
+    import os
+    print(file + " deleting")
+    os.remove(file)
+
+#%% OCR of images to find ARTG number using pytesseract
+def OCR_Image(filePath):
+    #import useful packages
+    import pytesseract
+    from PIL import Image
+
+    #original image, no preprocessing
+    #im_file = "Product Images/image01.png"
+    #loads image into memory
+    img = Image.open(filePath)
+    #saves the text found by OCR
+    ocr_result = pytesseract.image_to_string(img)
+    #prints all the text found
+    print(ocr_result)
+    #format text better
+    ocr_result = ocr_result.replace("\n", " ")
+    OCR_Results.append(ocr_result)
+    ARTG_L = ""
+    ARTG_R = ""
+    try:
+        startIndex = ocr_result.find("AUST L")
+        endIndex = startIndex + 13
+        ARTG_L = ocr_result[startIndex:endIndex].strip()
+    except:
+        ARTG_L = ""
+    try:
+        startIndex = ocr_result.find("AUST R")
+        endIndex = startIndex + 13
+        ARTG_R = ocr_result[startIndex:endIndex].strip()
+    except:
+        ARTG_R = ""
+    print(ARTG_L + " " +ARTG_R)
+
+
+
 #%% go to product page
 
 #Counting the number of products
@@ -167,7 +177,7 @@ n = 0
 for link in hrefs:
     #Loads the product page using hyperlink from the resulkts page
     driver.get(link)
-
+    #wait for page to load
     time.sleep(3)
 
     #collect name of product
@@ -288,6 +298,28 @@ for link in hrefs:
     
 
     imageCollection()
+    
+    
+
+    ARTG_L = ""
+    ARTG_R = ""
+    import os
+    # Get the list of all files and directories
+    path = "Product Images/"
+    dir_list = os.listdir(path)
+
+    print("Files and directories in '", path, "' :")
+
+    # prints all files
+    print(dir_list)
+
+    OCR_Results = []
+    for file in dir_list:
+        file = "Product Images/" + file
+        OCR_Image(file)
+        Delete_Image(file)
+        print("------- " + file + " deleted -----------")
+
 
     print("-------------------------------------")
     time.sleep(1)
@@ -295,6 +327,28 @@ for link in hrefs:
 
 #%% collect image from page
 
+
+
+
+
+# %%
+
+import os
+# Get the list of all files and directories
+path = "Product Images/"
+dir_list = os.listdir(path)
+
+print("Files and directories in '", path, "' :")
+
+# prints all files
+print(dir_list)
+
+OCR_Results = []
+for file in dir_list:
+    file = "Product Images/" + file
+    OCR_Image(file)
+    Delete_Image(file)
+    print("------- " + file + " deleted -----------")
 
 
 #%% Output infromation to a csv file

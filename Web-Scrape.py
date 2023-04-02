@@ -86,7 +86,6 @@ for prod in products:
 
 
 
-
 #%% set up lists for collected information
 
 productName = [] #comes from Name function
@@ -125,7 +124,7 @@ def ImageCollection():
     highResImgs = driver.find_elements(By.XPATH, "//*[@id='main-image-container']/ul/li/span/span/div/img")
     for img in highResImgs:
         highResImgHrefs.append(img.get_attribute("src"))
-        print(img.get_attribute("src"))
+        #print(img.get_attribute("src"))
 
     x = 0
     for imgRef in highResImgHrefs:   
@@ -146,23 +145,24 @@ def ImageCollection():
 # Delete images
 def Delete_Image(file):
     import os
-    print(file + " deleting")
+    #print(file + " deleting")
     os.remove(file)
 
 # Collect name of product
 def Name():
     name = driver.find_element(By.ID, "productTitle").text
     productName.append(name)
-    print(name)
+    #print(name)
 
 # Date collected
 def CollectDate():
     date = str(datetime.today().strftime('%Y-%m-%d'))
     datesCollected.append(date)
-    print(date)
+    #print(date)
 
 # Collect ingredients
 def FindIngredients():
+    ingredients = ""
     ingredName = "Ingredients:"
     try:
         #section = driver.find_element(By.ID, "important-information")
@@ -173,7 +173,7 @@ def FindIngredients():
         #for infoSec in infoSections:
         #    print(infoSec.text)
         i = 0
-        ingredients = ""
+        
         for infoSec in infoSections:
             i += 1
             if infoSec.text == ingredName:
@@ -188,22 +188,49 @@ def FindIngredients():
                 #dynamicXPath = "//*[@id='important-information']/div[" + i + "]/p"
                 #print(dynamicXPath)
                 #ingredients = driver.find_elements(By.XPATH, dynamicXPath).text
-                print(ingredients)
+                #print(ingredients)
     except:
-        print("---- no ingredients listed ----")
+        #print("---- no ingredients listed ----")
+        print("")
     productIngredients.append(ingredients)
 
 # Find seller
 def ProductSeller():
-    # //*[@class="tabular-buybox-container"] top box
-    # //*[@class="tabular-buybox-text"][2] more specific
-    seller = driver.find_element(By.XPATH, "//*[@class='tabular-buybox-text'][2]").text
-    if seller == "":
-        #get seller a different way becuase amazon offers recurring purchase options and thus has a different layout.
-        seller = driver.find_element(By.XPATH, "//*[@id='sfsb_accordion_head']//div[2]//div//span[2]").text
-    print(seller)
-    sellers.append(seller)
+    try:
+        # //*[@class="tabular-buybox-container"] top box
+        # //*[@class="tabular-buybox-text"][2] more specific
+        seller = driver.find_element(By.XPATH, "//*[@class='tabular-buybox-text'][2]").text
+        if seller == "":
+            #get seller a different way becuase amazon offers recurring purchase options and thus has a different layout.
+            seller = driver.find_element(By.XPATH, "//*[@id='sfsb_accordion_head']//div[2]//div//span[2]").text
+        print(seller)
+        sellers.append(seller)
+    except:
+        from selenium.webdriver.common.action_chains import ActionChains
+        buyingOptions = driver.find_element(By.ID, "buybox-see-all-buying-choices")
+        
+        #setup action driver
+        ac = ActionChains(driver)
+        #clicks on buying options button
+        ac.move_to_element(buyingOptions).click().perform()
 
+        time.sleep(2)
+        #find the multiple sellers.
+        sellerNames = []
+        sellerOptions = driver.find_elements(By.XPATH, "//*[@Class='a-size-small a-link-normal']")
+        for seller in sellerOptions:
+            if(seller.text != ""):
+                print(seller.text)
+                sellerNames.append(seller.text)
+        #create output of all names for database
+        outputName = ""
+        for sellerName in sellerNames:
+            outputName = outputName + sellerName + ", "
+        sellers.append(outputName)
+        crossButton = driver.find_element(By.XPATH, "//*[@id='all-offers-display']/span/div")
+        ac = ActionChains(driver)
+        #clicks on cross button so other parts of code an function properly
+        ac.move_to_element(crossButton).click().perform()
 # Manufacturer and ASIN
 def CollectAsinManufacturer():
     #old way of finding ASIN
@@ -242,9 +269,9 @@ def CollectAsinManufacturer():
                 #print("--- found ASIN @ pos 5")
                 asin = driver.find_element(By.XPATH, "//*[@id='detailBullets_feature_div']/ul/li[5]/span/span[2]").text
                 #asin = driver.find_element(By.XPATH, "//*[@id='detailBulletsWrapper_feature_div']/div/ul[1]/li[5]/span/span[2]").text
-    print(manufacturer)
+    #print(manufacturer)
     manufacturers.append(manufacturer)
-    print(asin)
+    #print(asin)
     asins.append(asin)
 
 # Collect screenshot of product screen
@@ -254,7 +281,7 @@ def ProductScreenshot(tally):
     #create the output name
     screenshotName = "proof"+ number + ".png"
     outputLocation = "Product Screenshots/"+ screenshotName
-    print(outputLocation)
+    #print(outputLocation)
     driver.save_screenshot(outputLocation)
     imageProofName.append(screenshotName)
 
@@ -283,7 +310,7 @@ def OCR_Image():
         #saves the text found by OCR
         ocr_result = pytesseract.image_to_string(img)
         #prints all the text found
-        print(ocr_result)
+        #print(ocr_result)
         #format text better
         ocr_result = ocr_result.replace("\n", " ")
         
@@ -303,7 +330,7 @@ def OCR_Image():
         except:
             ARTG_R = ""
         artgFinal = ARTG_L + " " +ARTG_R
-        print(artgFinal)
+        #print(artgFinal)
         ArtgResults.append(artgFinal)
 
         Delete_Image(file)
@@ -329,10 +356,11 @@ def DescriptionText():
         description = driver.find_element(By.XPATH, "//*[@id='productDescription']/p/span")
         writtentext.append(description.text)
     except:
-        print("---- no description section ----")
+        #print("---- no description section ----")
+        print("")
 
-    for text in writtentext:
-        print(text)
+    #for text in writtentext:
+        #print(text)
     textOutput = ""
     for txt in writtentext:
         textOutput = textOutput + txt
@@ -359,13 +387,16 @@ for link in hrefs:
     #------------------problem like this needs a solution---------------------
     #https://www.amazon.com.au/Swisse-Ultiboost-Vitamin-0-202-Kilograms/dp/B013JKSIUG/ref=sr_1_46?keywords=Vitamins%2B%26%2BSupplements&qid=1680339856&sr=8-46&th=1
     #---------------------------------------
+    #---------------new problem, sold by, ships by, payment------------------------
+    #https://www.amazon.com.au/JEBBLAS-Moisture-Proof-Organizer-Supplements-Medication/dp/B07TC6CLTX/ref=sr_1_59_sspa?keywords=Vitamins+%26+Supplements&qid=1680423159&sr=8-59-spons&psc=1&spLa=ZW5jcnlwdGVkUXVhbGlmaWVyPUExNlRTRDhRSkVLR0tHJmVuY3J5cHRlZElkPUEwODkyMzkyMUlPV0VGSTk5VFo4MyZlbmNyeXB0ZWRBZElkPUExSkFWSDA0TkxJRjA0JndpZGdldE5hbWU9c3BfYnRmJmFjdGlvbj1jbGlja1JlZGlyZWN0JmRvTm90TG9nQ2xpY2s9dHJ1ZQ==
+    #---------------------------------------
     ProductSeller() #find seller
 
     DescriptionText() #collect product infromation under the "about this item" section
     CollectAsinManufacturer() #manufacturer and ASIN
 
     #keyword search
-    print(searchTerm)
+    #print(searchTerm)
     keywords.append(searchTerm)
 
     CollectDate() #date collected
@@ -374,7 +405,7 @@ for link in hrefs:
     OCR_Image() #run OCR on images to extract text
 
     
-    print("-------------------------------------")
+    #print("-------------------------------------")
     time.sleep(1)
     n = n + 1
 
@@ -383,7 +414,26 @@ for link in hrefs:
 
 
 #%% Output infromation to a csv file
+import pandas as pd
+data = {
+    'Name' : productName,
+    'Hyperlink' : hyperlinks,
+    'Manufacturer' : manufacturers,
+    'Seller' : sellers,
+    'ASIN' : asins,
+    'SearchKeywords' : keywords,
+    'ARTG' : artgs,
+    'Description' : descriptions,
+    'Ingredients' : productIngredients,
+    'DateCollected' : datesCollected,
+    'ImageProofName' : imageProofName,
+    'OCR_Results' : OcrResults
+}
+df = pd.DataFrame(data)
+df.to_csv('web-scrape-export.csv')
 
+
+#%%
 
 
 
@@ -391,8 +441,10 @@ for link in hrefs:
 
 #just a timer, you could add whatever further functionality 
 #after this point
-time.sleep(100)
+time.sleep(60)
 
 #closes the window
 #driver.quit()
 
+
+# %%

@@ -77,7 +77,7 @@ hrefs = []
 
 # loop through all the product elements and collect their href links.
 for prod in products:
-    print(prod.get_attribute("href"))
+    #print(prod.get_attribute("href"))
     #adds href link to end of list of links
     hrefs.append(prod.get_attribute("href"))
 
@@ -177,12 +177,14 @@ def FindIngredients():
         for infoSec in infoSections:
             i += 1
             if infoSec.text == ingredName:
+                # the [2] on the end was added because it originally didnt need it but it it wouldnt pick anything up
+                # if this continues, I will need ot do a if null check and continue onto the next one to collect info.
                 if i == "1":
-                    ingredients = driver.find_element(By.XPATH, "//*[@id='important-information']/div[1]/p").text
+                    ingredients = driver.find_element(By.XPATH, "//*[@id='important-information']/div[1]/p[2]").text
                 elif i == "2":
-                    ingredients = driver.find_element(By.XPATH, "//*[@id='important-information']/div[2]/p").text
+                    ingredients = driver.find_element(By.XPATH, "//*[@id='important-information']/div[2]/p[2]").text
                 else:
-                    ingredients = driver.find_element(By.XPATH, "//*[@id='important-information']/div[3]/p").text
+                    ingredients = driver.find_element(By.XPATH, "//*[@id='important-information']/div[3]/p[2]").text
                 #position of ingredients in list at i index
                 #//*[@id='important-information']/div[i]/p[2]
                 #dynamicXPath = "//*[@id='important-information']/div[" + i + "]/p"
@@ -191,7 +193,7 @@ def FindIngredients():
                 #print(ingredients)
     except:
         #print("---- no ingredients listed ----")
-        print("")
+        ingredients = ""
     productIngredients.append(ingredients)
 
 # Find seller
@@ -227,10 +229,12 @@ def ProductSeller():
         for sellerName in sellerNames:
             outputName = outputName + sellerName + ", "
         sellers.append(outputName)
+        print(outputName)
         crossButton = driver.find_element(By.XPATH, "//*[@id='all-offers-display']/span/div")
         ac = ActionChains(driver)
         #clicks on cross button so other parts of code an function properly
         ac.move_to_element(crossButton).click().perform()
+
 # Manufacturer and ASIN
 def CollectAsinManufacturer():
     #old way of finding ASIN
@@ -378,12 +382,22 @@ for link in hrefs:
     #Loads the product page using hyperlink from the resulkts page
     driver.get(link)
     hyperlinks.append(link)
-    #wait for page to load
-    time.sleep(3)
+
+    time.sleep(3) #wait for page to load
+    
+    CollectDate() #date collected
+        #keyword search
+        #print(searchTerm)
+    keywords.append(searchTerm)
 
     Name() #collect name of product
     FindIngredients() #collect ingredients
     
+    
+
+    DescriptionText() #collect product infromation under the "about this item" section
+    CollectAsinManufacturer() #manufacturer and ASIN
+
     #------------------problem like this needs a solution---------------------
     #https://www.amazon.com.au/Swisse-Ultiboost-Vitamin-0-202-Kilograms/dp/B013JKSIUG/ref=sr_1_46?keywords=Vitamins%2B%26%2BSupplements&qid=1680339856&sr=8-46&th=1
     #---------------------------------------
@@ -392,14 +406,7 @@ for link in hrefs:
     #---------------------------------------
     ProductSeller() #find seller
 
-    DescriptionText() #collect product infromation under the "about this item" section
-    CollectAsinManufacturer() #manufacturer and ASIN
-
-    #keyword search
-    #print(searchTerm)
-    keywords.append(searchTerm)
-
-    CollectDate() #date collected
+    
     ProductScreenshot(n) #proof screenshot
     ImageCollection() #images from product thumbnails 
     OCR_Image() #run OCR on images to extract text
@@ -430,7 +437,9 @@ data = {
     'OCR_Results' : OcrResults
 }
 df = pd.DataFrame(data)
-df.to_csv('web-scrape-export.csv')
+date = str(datetime.today().strftime('%Y-%m-%d'))
+date = date.replace("/", "-")
+df.to_csv('web-scrape-export_' + date + '.csv')
 
 
 #%%
@@ -444,7 +453,7 @@ df.to_csv('web-scrape-export.csv')
 time.sleep(60)
 
 #closes the window
-#driver.quit()
+driver.quit()
 
 
 # %%

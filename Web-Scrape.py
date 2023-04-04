@@ -60,33 +60,16 @@ searchTerm = "Vitamins & Supplements"
 searchBar.send_keys(searchTerm)
 searchBar.send_keys(Keys.ENTER)
 
-#%% Collect products from the page
-
-#wait so the website can load (possible problem with slower connections.)
-time.sleep(2)
-
-# XPATH for all the chunks that contain the hrefs
-#//*[@class="a-link-normal s-no-outline"]
-# find all the products on the page by using an XPATH search to find all 
-products = driver.find_elements(By.XPATH, "//*[@class='a-link-normal s-no-outline']")
-
-#%% Collect products from page
-
-# this list will contain all the hyperlink references (hrefs) we find on the pages
-hrefs = []
-
-# loop through all the product elements and collect their href links.
-for prod in products:
-    #print(prod.get_attribute("href"))
-    #adds href link to end of list of links
-    hrefs.append(prod.get_attribute("href"))
+#%% 
 
 
-#%% go to next page of search
 
 
 
 #%% set up lists for collected information
+
+# this list will contain all the hyperlink references (hrefs) we find on the pages
+hrefs = []
 
 productName = [] #comes from Name function
 hyperlinks = [] #comes from 'core" function
@@ -100,6 +83,52 @@ productIngredients = [] #comes from FindIngredients function
 datesCollected = [] #comes from CollectDate fucntion
 imageProofName = [] #comes from ProductScreenshot function
 OcrResults = [] #comes from OCR_Image function
+
+#%% Collect products from page
+
+
+
+def PageHrefs():
+    import time
+    #wait so the website can load (possible problem with slower connections.)
+    time.sleep(2)
+    # find all the products on the page by using an XPATH search to find all 
+    products = driver.find_elements(By.XPATH, "//*[@class='a-link-normal s-no-outline']")
+    # loop through all the product elements and collect their href links.
+    for prod in products:
+        print(prod.get_attribute("href"))
+        #adds href link to end of list of links
+        hrefs.append(prod.get_attribute("href"))
+
+def NextPage():
+    # go to next page of search
+    from selenium.webdriver.common.action_chains import ActionChains
+
+    try:        
+        nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
+        ac = ActionChains(driver)
+        #clicks on cross button so other parts of code an function properly
+        ac.move_to_element(nextButton).click().perform()
+        return True
+    except:
+        return False
+
+def CollectHrefs():
+    #stillPages indicates that information needs to be collected from the currently active screen
+    stillPages = True
+    while stillPages == True:
+        #collectedPage helps loop and collect the current displayed page, not sure if its needed reeally.
+        collectedPage = False
+        if collectedPage == False:
+            #pageHrefs coollects and appends the Hyperlinks of products into a list.
+            PageHrefs()
+            collectedPage = True
+            #nextPage returns true if it changes page and false if its fails and cannot
+            stillPages = NextPage()
+            if stillPages == True:
+                collectedPage = False
+
+
 
 
 #%% Load all function
@@ -374,7 +403,17 @@ def DescriptionText():
 
 #%% go to product page
 
-#Counting the number of products
+CollectHrefs()
+
+
+
+
+
+
+
+#%%
+
+#Counting the number of products for the proof image naming
 n = 0
 
 #loop through all the products

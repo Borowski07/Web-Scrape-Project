@@ -14,6 +14,17 @@ from selenium.webdriver.chrome.options import Options
 import time
 from datetime import datetime
 
+#%% User selects file path location for files to be saved to.
+
+from tkinter import filedialog
+from tkinter import *
+root = Tk()
+root.withdraw()
+SaveLocation = filedialog.askdirectory()
+print(SaveLocation)
+
+#%%
+
 #%% Selenium Driver Setup (chrome window)
 
 #url variable, used to call what webpage to visit
@@ -25,9 +36,15 @@ settingsFile = open("settings.txt", mode = "r")
 lines = []
 for line in settingsFile:
     lines.append(line)
-    print(line)
+    #print(line)
 
-
+keywordFile = open("keyword-searches.txt", mode = "r")
+searchTerms = []
+for keyword in keywordFile:
+    c = keyword[0]
+    if c != "#":
+        searchTerms.append(keyword)
+        print(keyword)
 
 #setting up where to save images etc.
 prefs = {"downlaod.default_directory": lines[2]}
@@ -41,24 +58,24 @@ driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()), op
 # %% Open webpage and run start scraping
 
 #starting with amazon webpage for scraping.
-URL= "https://www.amazon.com.au/"
+#URL= "https://www.amazon.com.au/"
 
 #navigates the empty chrome window to the url specified
-driver.get(URL)
+#driver.get(URL)
 
 #wait so the website can load (possible problem with slower connections.)
-time.sleep(3)
+#time.sleep(3)
 
 # find search bar to start searches
-searchBar = driver.find_element(By.ID, "twotabsearchtextbox")
+#searchBar = driver.find_element(By.ID, "twotabsearchtextbox")
 
 # we can update this section to take a list of search terms to check 
 # from a txt file or something that can be editted externally.
-searchTerm = "Vitamins & Supplements"
+#searchTerm = "Vitamins & Supplements"
 
 #input the current search term into the search box and send the enter key command
-searchBar.send_keys(searchTerm)
-searchBar.send_keys(Keys.ENTER)
+#searchBar.send_keys(searchTerm)
+#searchBar.send_keys(Keys.ENTER)
 
 #%% 
 
@@ -66,17 +83,20 @@ searchBar.send_keys(Keys.ENTER)
 
 
 
-#%% set up lists for collected information
+
+
+#%% list creation
 
 # this list will contain all the hyperlink references (hrefs) we find on the pages
 hrefs = []
 
+#set up lists for collected information
 productName = [] #comes from Name function
 hyperlinks = [] #comes from 'core" function
 manufacturers = [] #comes from CollectAsinManufacturer function
 sellers = [] #comes from ProductSeller function
 asins = [] #comes from CollectAsinManufacturer function
-keywords = [] #comes from 'core" function
+keywordUsed = [] #comes from 'core" function
 artgs = [] #comes from OCR_Image function
 descriptions = [] #comes from DescriptionText function
 productIngredients = [] #comes from FindIngredients function
@@ -86,7 +106,23 @@ OcrResults = [] #comes from OCR_Image function
 
 #%% Collect products from page
 
+def OpenAmazon(): 
+    #starting with amazon webpage for scraping.
+    URL= "https://www.amazon.com.au/"
+    #navigates the empty chrome window to the url specified
+    driver.get(URL)
+    #wait so the website can load (possible problem with slower connections.)
+    time.sleep(3)
 
+def SearchAmazon(searchTerm):
+    from selenium.webdriver.common.keys import Keys
+    # find search bar to start searches
+    searchBar = driver.find_element(By.ID, "twotabsearchtextbox")
+
+    #input the current search term into the search box and send the enter key command
+    searchBar.send_keys(searchTerm)
+    #searchBar.send_keys(Keys.ENTER)
+    #time.sleep(10)
 
 def PageHrefs():
     import time
@@ -131,7 +167,7 @@ def CollectHrefs():
 
 
 
-#%% Load all function
+#%% Load all functions 
 
 # Image collection
 def ImageCollection():
@@ -403,9 +439,22 @@ def DescriptionText():
 
 #%% go to product page
 
-CollectHrefs()
+def StartSearch():
+    
+    for term in searchTerms:
+        OpenAmazon() #open amazon
+        SearchAmazon(term) #sends search term to driver
+        CollectHrefs()
+
+        #reset the href list as to not take up too much memory
+        #hrefs.clear()
 
 
+
+
+#%%
+
+StartSearch()
 
 
 
@@ -423,35 +472,18 @@ for link in hrefs:
     hyperlinks.append(link)
 
     time.sleep(3) #wait for page to load
-    
     CollectDate() #date collected
         #keyword search
         #print(searchTerm)
-    keywords.append(searchTerm)
-
+    keywordUsed.append(searchTerm)
     Name() #collect name of product
     FindIngredients() #collect ingredients
-    
-    
-
     DescriptionText() #collect product infromation under the "about this item" section
     CollectAsinManufacturer() #manufacturer and ASIN
-
-    #------------------problem like this needs a solution---------------------
-    #https://www.amazon.com.au/Swisse-Ultiboost-Vitamin-0-202-Kilograms/dp/B013JKSIUG/ref=sr_1_46?keywords=Vitamins%2B%26%2BSupplements&qid=1680339856&sr=8-46&th=1
-    #---------------------------------------
-    #---------------new problem, sold by, ships by, payment------------------------
-    #https://www.amazon.com.au/JEBBLAS-Moisture-Proof-Organizer-Supplements-Medication/dp/B07TC6CLTX/ref=sr_1_59_sspa?keywords=Vitamins+%26+Supplements&qid=1680423159&sr=8-59-spons&psc=1&spLa=ZW5jcnlwdGVkUXVhbGlmaWVyPUExNlRTRDhRSkVLR0tHJmVuY3J5cHRlZElkPUEwODkyMzkyMUlPV0VGSTk5VFo4MyZlbmNyeXB0ZWRBZElkPUExSkFWSDA0TkxJRjA0JndpZGdldE5hbWU9c3BfYnRmJmFjdGlvbj1jbGlja1JlZGlyZWN0JmRvTm90TG9nQ2xpY2s9dHJ1ZQ==
-    #---------------------------------------
     ProductSeller() #find seller
-
-    
     ProductScreenshot(n) #proof screenshot
     ImageCollection() #images from product thumbnails 
     OCR_Image() #run OCR on images to extract text
-
-    
-    #print("-------------------------------------")
     time.sleep(1)
     n = n + 1
 
@@ -467,7 +499,7 @@ data = {
     'Manufacturer' : manufacturers,
     'Seller' : sellers,
     'ASIN' : asins,
-    'SearchKeywords' : keywords,
+    'SearchKeywords' : keywordUsed,
     'ARTG' : artgs,
     'Description' : descriptions,
     'Ingredients' : productIngredients,

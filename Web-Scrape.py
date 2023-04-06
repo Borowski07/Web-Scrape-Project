@@ -90,7 +90,7 @@ driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()), op
 # this list will contain all the hyperlink references (hrefs) we find on the pages
 hrefs = []
 
-#set up lists for collected information
+# collected information lists
 productName = [] #comes from Name function
 hyperlinks = [] #comes from 'core" function
 manufacturers = [] #comes from CollectAsinManufacturer function
@@ -104,8 +104,58 @@ datesCollected = [] #comes from CollectDate fucntion
 imageProofName = [] #comes from ProductScreenshot function
 OcrResults = [] #comes from OCR_Image function
 
-#%% Collect products from page
+# results lists
+compliancePoison = []
+approvedARTG = []
+therapueticClaimsGood = []
 
+#%% import poison list and set up checking dependabilities
+
+import pandas as pd
+import re
+# Read poison ingredients from CSV files
+poison_df = pd.read_csv('poison_list.csv', encoding='iso-8859-1')
+# Create a set of poisonous substances for faster lookup
+poison_set = set(poison_df['poison'].str.lower())
+# Compile regular expressions for checking ingredient names against poisons
+poison_regexes = [re.compile(rf"\b{re.escape(p)}\b") for p in poison_set]
+
+#%% Load all function for checking compliance of products
+
+def CheckIngredients(ingredients):
+    # checks if the ingredfentis are blank or NaN and sets it to blank
+    if pd.isna(ingredients):
+        # If ingredients is NaN, convert it to an empty string
+        ingredients = ""
+    #checks to see if poison list is anythign but a string
+    elif not isinstance(ingredients, str):
+        # If ingredients is not a string, convert it to a string
+        ingredients = str(ingredients)
+    for ingredient in ingredients.split(","):
+        ingredient = ingredient.strip()  # Remove leading/trailing spaces
+        # Check if the ingredient name exactly matches a poison in the poison set
+        if ingredient.lower() in poison_set:
+            #contains poison
+            return False 
+        # Check if any variation of the ingredient name is a match to a poison in the poison set
+        if any(regex.search(ingredient.lower()) for regex in poison_regexes):
+            #contains poison
+            return False 
+    #no poison detected
+    return True 
+
+def PoisonCheck():
+    for ingred in productIngredients:
+        safe = CheckIngredients(ingred)
+        if safe == True:
+            compliancePoison.append("compliant")
+        else:
+            compliancePoison.append("non-compliant")
+
+
+#%% Load all functions for collecting product information
+
+# Opens the main landing page for amazon
 def OpenAmazon(): 
     #starting with amazon webpage for scraping.
     URL= "https://www.amazon.com.au/"
@@ -114,6 +164,7 @@ def OpenAmazon():
     #wait so the website can load (possible problem with slower connections.)
     time.sleep(3)
 
+# This inputs the search term into the search bar on amazon
 def SearchAmazon(searchTerm):
     from selenium.webdriver.common.keys import Keys
     # find search bar to start searches
@@ -124,6 +175,7 @@ def SearchAmazon(searchTerm):
     #searchBar.send_keys(Keys.ENTER)
     #time.sleep(10)
 
+# Collects the hyperlink references from the product results page
 def PageHrefs():
     import time
     #wait so the website can load (possible problem with slower connections.)
@@ -136,6 +188,7 @@ def PageHrefs():
         #adds href link to end of list of links
         hrefs.append(prod.get_attribute("href"))
 
+# Attempts to go to the next page of search results
 def NextPage():
     # go to next page of search
     from selenium.webdriver.common.action_chains import ActionChains
@@ -149,6 +202,7 @@ def NextPage():
     except:
         return False
 
+# Manages changing pages and collecting results functions
 def CollectHrefs():
     #stillPages indicates that information needs to be collected from the currently active screen
     stillPages = True
@@ -163,11 +217,6 @@ def CollectHrefs():
             stillPages = NextPage()
             if stillPages == True:
                 collectedPage = False
-
-
-
-
-#%% Load all functions 
 
 # Image collection
 def ImageCollection():
@@ -392,12 +441,43 @@ def OCR_Image():
             ARTG_L = ocr_result[startIndex:endIndex].strip()
         except:
             ARTG_L = ""
+        
+        try:
+            startIndex = ocr_result.find("AUSTL ")
+            endIndex = startIndex + 12
+            ARTG_L = ocr_result[startIndex:endIndex].strip()
+        except:
+            ARTG_L = ""
+        try:
+            startIndex = ocr_result.find("AUSTL")
+            endIndex = startIndex + 11
+            ARTG_L = ocr_result[startIndex:endIndex].strip()
+        except:
+            ARTG_L = ""
         try:
             startIndex = ocr_result.find("AUST R")
             endIndex = startIndex + 13
             ARTG_R = ocr_result[startIndex:endIndex].strip()
         except:
             ARTG_R = ""
+        try:
+            startIndex = ocr_result.find("AUSTR ")
+            endIndex = startIndex + 12
+            ARTG_L = ocr_result[startIndex:endIndex].strip()
+        except:
+            ARTG_L = ""
+        try:
+            startIndex = ocr_result.find("AUSTR")
+            #this test is because the word 'AUSTRALIA' would be picked up mistakenly
+            #this isnt an issue for the other tests.
+            testIndex = startIndex + 5
+            testLetter = ocr_result[testIndex]
+            if testLetter != "A": 
+                endIndex = startIndex + 12
+                ARTG_L = ocr_result[startIndex:endIndex].strip()
+        except:
+            ARTG_L = ""
+
         artgFinal = ARTG_L + " " +ARTG_R
         #print(artgFinal)
         ArtgResults.append(artgFinal)
@@ -440,52 +520,53 @@ def DescriptionText():
 #%% go to product page
 
 def StartSearch():
-    
-    for term in searchTerms:
+    for term in searchTerms: #loops through search terms
         OpenAmazon() #open amazon
         SearchAmazon(term) #sends search term to driver
         CollectHrefs()
+        #Counting the number of products for the proof image naming
+        n = 0
 
+        #loop through all the products
+        for link in hrefs:
+            #Loads the product page using hyperlink from the resulkts page
+            driver.get(link)
+            hyperlinks.append(link)
+
+            time.sleep(3) #wait for page to load
+            CollectDate() #date collected
+                #keyword search
+                #print(searchTerm)
+            keywordUsed.append(term)
+            Name() #collect name of product
+            FindIngredients() #collect ingredients
+            DescriptionText() #collect product infromation under the "about this item" section
+            CollectAsinManufacturer() #manufacturer and ASIN
+            ProductSeller() #find seller
+            ProductScreenshot(n) #proof screenshot
+            ImageCollection() #images from product thumbnails 
+            OCR_Image() #run OCR on images to extract text
+            time.sleep(1)
+            n = n + 1
         #reset the href list as to not take up too much memory
-        #hrefs.clear()
+        hrefs.clear()
+    #just a timer, you could add whatever further functionality 
+    #after this point
+    time.sleep(60)
+
+    #closes the window
+    driver.quit()
+        
 
 
 
 
-#%%
+#%% starts the program
 
 StartSearch()
 
 
 
-
-
-#%%
-
-#Counting the number of products for the proof image naming
-n = 0
-
-#loop through all the products
-for link in hrefs:
-    #Loads the product page using hyperlink from the resulkts page
-    driver.get(link)
-    hyperlinks.append(link)
-
-    time.sleep(3) #wait for page to load
-    CollectDate() #date collected
-        #keyword search
-        #print(searchTerm)
-    keywordUsed.append(searchTerm)
-    Name() #collect name of product
-    FindIngredients() #collect ingredients
-    DescriptionText() #collect product infromation under the "about this item" section
-    CollectAsinManufacturer() #manufacturer and ASIN
-    ProductSeller() #find seller
-    ProductScreenshot(n) #proof screenshot
-    ImageCollection() #images from product thumbnails 
-    OCR_Image() #run OCR on images to extract text
-    time.sleep(1)
-    n = n + 1
 
 
 
@@ -519,12 +600,7 @@ df.to_csv('web-scrape-export_' + date + '.csv')
 
 #%% Wrapping up procedures
 
-#just a timer, you could add whatever further functionality 
-#after this point
-time.sleep(60)
 
-#closes the window
-driver.quit()
 
 
 # %%

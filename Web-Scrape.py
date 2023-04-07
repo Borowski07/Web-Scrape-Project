@@ -105,14 +105,16 @@ imageProofName = [] #comes from ProductScreenshot function
 OcrResults = [] #comes from OCR_Image function
 
 # results lists
-compliancePoison = []
-approvedARTG = []
-therapueticClaimsGood = []
+compliancePoison = [] #comes from PoisonCheck fucntion
+complianceARTG = [] #comes from CheckARTG function
+therapueticClaims = [] #comes from CheckTherpeuticClaims function
 
-#%% import poison list and set up checking dependabilities
+#%% import poison list and set up checking dependacies
 
 import pandas as pd
 import re
+
+# ------ Poison Check ------ 
 # Read poison ingredients from CSV files
 poison_df = pd.read_csv('poison_list.csv', encoding='iso-8859-1')
 # Create a set of poisonous substances for faster lookup
@@ -120,8 +122,66 @@ poison_set = set(poison_df['poison'].str.lower())
 # Compile regular expressions for checking ingredient names against poisons
 poison_regexes = [re.compile(rf"\b{re.escape(p)}\b") for p in poison_set]
 
+
+# ------ Therapuetic Claim Check ------ 
+#imports claim words/phrases from csv file
+claimTermsTable = pd.read_csv("claim-terms.csv", usecols=["Keyword"], squeeze=True) 
+#converts description to list
+claimTerms = claimTermsTable.to_list() 
+
+
+# ------ ARTG Number Check ------ 
+# Read ARTG list CSV file into a pandas DataFrame
+artg_list = pd.read_csv('artg_list.csv')
+# Extract the set of unique manufacturers from the ARTG list DataFrame
+artg_manufacturers = set(artg_list['Sponsor Name'].str.strip().str.lower())
+
+
 #%% Load all function for checking compliance of products
 
+#ARTG Check artg number and manufacturer.
+def CheckARTG():
+    for i in range(len(artgs)):
+        #sets up variables for comparisons
+        product_artg = artgs[i]
+        product_manufacturer = manufacturers[i]
+        
+        if pd.isna(product_manufacturer) or not product_manufacturer.strip():
+            if pd.isna(product_artg) or not product_artg.strip():
+                #print(f"{product['Name']}\nWarning!! does not have a manufacturer")
+                complianceARTG.append("non-compliant")
+                # pass #no manufacturer so we make it non-compliant?
+            else: #manufacturer is not na
+                if pd.isna(product_artg) or not product_artg.strip():
+                    #print(f"{product['Name']}\nWarning!! does not have an ARTG number")
+                    complianceARTG.append("non-compliant")
+                    # pass #no artg  number so its non-compliant
+                else:
+                    product_artg_numbers = set()
+                    for artg_num in product_artg.split():
+                        artg_num = artg_num.strip()  # Remove leading/trailing white spaces
+                        #if '-' in artg_num:
+                        #    start, end = map(int, artg_num.split('-'))
+                        #    if end == 0:
+                        #        # ARTG number in the product list has a suffix of "-0"
+                        #        # Check if corresponding number without the suffix is in ARTG list
+                        #        if str(start) in artg_num:
+                        #            product_artg_numbers.add(str(start))
+                        #    else:
+                        #        product_artg_numbers.update(str(x) for x in range(start, end+1))
+                        #else:
+                        #    product_artg_numbers.add(artg_num)
+                        product_artg_numbers.add(artg_num)
+                    if product_manufacturer in artg_manufacturers:
+                        #pass
+                        #print(f"{product['Name']}\nComplies with ARTG regulations")
+                        complianceARTG.append("compliant")
+                    else:
+                        #print(f"{product['Name']}\nDoes not comply with ARTG regulations")
+                        complianceARTG.append("non-compliant")
+                        #pass
+
+# Checks ingredients and returns a bool of true or false based on if ingredeients are poisonous
 def CheckIngredients(ingredients):
     # checks if the ingredfentis are blank or NaN and sets it to blank
     if pd.isna(ingredients):
@@ -144,6 +204,7 @@ def CheckIngredients(ingredients):
     #no poison detected
     return True 
 
+# creates a list of compliant or non-compliant results
 def PoisonCheck():
     for ingred in productIngredients:
         safe = CheckIngredients(ingred)
@@ -151,6 +212,28 @@ def PoisonCheck():
             compliancePoison.append("compliant")
         else:
             compliancePoison.append("non-compliant")
+
+# checks descriptions against claim keywords
+def CheckTherpeuticClaims():
+    #number_claims = []
+    for descript in descriptions: #goes through each description
+        #print(descript)
+        descript = descript.lower()
+        #print(descript)
+        bad_claims = 0
+        for keyword in claimTerms: #goes through each keyword for each description 
+            keyword = keyword.lower() # converts dictionary to lowercase
+            if keyword in descript: # if keyword is in a description adds 1 to number of claims in number_claim variable
+                bad_claims += 1 
+        #number_claims.append(bad_claims)
+        if bad_claims >= 1:
+            therapueticClaims.append("non-compliant")
+        else:
+            therapueticClaims.append("compliant")
+
+
+
+
 
 
 #%% Load all functions for collecting product information

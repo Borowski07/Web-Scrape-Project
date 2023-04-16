@@ -697,11 +697,256 @@ print(datetime.today())
 StartSearch()
 
 
+
+#%%
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+import time
+from datetime import datetime
+import random
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import TimeoutException
+
+#setting up where to save images etc.
+#prefs = {"downlaod.default_directory": lines[2]}
+#options = Options()
+#options.add_experimental_option("prefs", prefs)
+
+#compile webdriver / browser for selenium to run
+#driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+#driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()), options = options)
+
+keywordFile = open("keyword-searches.txt", mode = "r")
+searchTerms = []
+for keyword in keywordFile:
+    c = keyword[0]
+    if c != "#":
+        searchTerms.append(keyword)
+        #print(keyword)
+
+#driver 
+# create window
+driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+# collects all the hyperlinks
+for term in searchTerms: #loops through search terms
+    OpenAmazon() #open amazon
+    SearchAmazon(term) #sends search term to driver
+    CollectHrefs()
+
+
+#%%
+
+# #Counting the number of products for the proof image naming
+n = 62
+#
+stillCollecting = True
+
+while(stillCollecting):
+    try:
+        #loop through all the products
+        #for n in range(len(hrefs)):
+        while n <= len(hrefs):
+            #Loads the product page using hyperlink from the resulkts page
+            driver.get(hrefs[n])
+            time.sleep(random.choice(waitMedium)) #wait for page to load
+            #sometimes Amazon will redirect you elsewhere
+            current = driver.current_url
+            if "www.primevideo.com" in current:
+                #time.sleep(300)
+                driver.quit()
+                pass
+            
+            CollectDate() #date collected
+            hyperlinks.append(hrefs[n])
+                #keyword search
+                #print(searchTerm)
+            #keywordUsed.append(term)
+            Name() #collect name of product
+            FindIngredients() #collect ingredients
+            DescriptionText() #collect product infromation under the "about this item" section
+            CollectAsinManufacturer() #manufacturer and ASIN
+            ProductSeller() #find seller
+            ProductScreenshot(n) #proof screenshot
+            ImageCollection() #images from product thumbnails 
+            OCR_Image() #run OCR on images to extract text
+            time.sleep(random.choice(waitShort))
+            n = n + 1
+        #reset the href list as to not take up too much memory
+        #hrefs.clear()
+        #just a timer, you could add whatever further functionality 
+        #after this point
+        time.sleep(10)
+        print("-----Finished collecting all products-----")
+        stillCollecting = False
+        break
+    except:
+        print(n)
+        driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+        #print(datetime.today())
+        #closes the window
+        #driver.quit()
+
+
+
+
+
+
 #%%
 
 driver.refresh()
 
 
+#%% trying to save only the page results hyperlinks and keyword used for searcsh
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+import time
+from datetime import datetime
+import random
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import TimeoutException
+
+# set up waits to add some variability as to fool automated systems
+waitShort = [2, 3]
+waitMedium = [3, 4, 5, 6]
+waitLong = [5, 6, 7, 8]
+
+
+# Opens the main landing page for amazon
+def OpenAmazonE(): 
+    #starting with amazon webpage for scraping.
+    URL= "https://www.amazon.com.au/"
+    #navigates the empty chrome window to the url specified
+    driver.get(URL)
+    #wait so the website can load (possible problem with slower connections.)
+    time.sleep(random.choice(waitMedium))
+
+# This inputs the search term into the search bar on amazon
+def SearchAmazonE(searchTerm):
+    from selenium.common.exceptions import TimeoutException
+    # from selenium.webdriver.common.keys import Keys
+    # find search bar to start searches
+    while(True):
+        try:
+            searchBar = driver.find_element(By.ID, "twotabsearchtextbox")
+            searchBar.send_keys(searchTerm)
+        except TimeoutException:
+            try:
+                searchBar = driver.find_element(By.ID, "nav-bb-search")
+                searchBar.send_keys(searchTerm)
+            except TimeoutException:
+                driver.refresh()
+            else:
+                break
+        else:
+            break
+
+    #input the current search term into the search box and send the enter key command
+    #searchBar.send_keys(searchTerm)
+    #searchBar.send_keys(Keys.ENTER)
+
+
+
+# Attempts to go to the next page of search results
+def NextPageE():
+    # go to next page of search
+    from selenium.webdriver.common.action_chains import ActionChains
+
+    try:        
+        nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
+        ac = ActionChains(driver)
+        #clicks on cross button so other parts of code an function properly
+        ac.move_to_element(nextButton).click().perform()
+        return True
+    except:
+        return False
+
+# Date collected
+def CollectDateE():
+    date = str(datetime.today().strftime('%Y-%m-%d'))
+    datesCollected.append(date)
+    #print(date)
+
+# Collects the hyperlink references from the product results page
+def PageHrefsE(n, keyword):
+    import time
+    #wait so the website can load (possible problem with slower connections.)
+    time.sleep(random.choice(waitMedium))
+    # find all the products on the page by using an XPATH search to find all 
+    products = driver.find_elements(By.XPATH, "//*[@class='a-link-normal s-no-outline']")
+    # lists of info for collected products for this page
+    pageHrefs = []
+    pageKeyword = []
+    pageDateCollected = []
+    # loop through all the product elements and collect their href links.
+    for prod in products:
+        #print(prod.get_attribute("href"))
+        #adds href link to end of list of links
+        pageHrefs.append(prod.get_attribute("href"))
+        pageKeyword.append(keyword)
+        date = str(datetime.today().strftime('%Y-%m-%d'))
+        pageDateCollected.append(date)
+    # export page of things with 
+    import pandas as pd
+    data = {
+        'Hyperlink' : pageHrefs,
+        'SearchKeywords' : pageKeyword,
+        'DateCollected' : pageDateCollected
+    }
+    df = pd.DataFrame(data)
+    keyword = keyword.strip()
+    keyword = keyword.replace("&" , "")
+    keyword = keyword.replace("'" , "")
+    df.to_csv(keyword + '-page-' + str(n) + '.csv')
+
+# Manages changing pages and collecting results functions
+def CollectHrefsE(word):
+    n = 1
+    #stillPages indicates that information needs to be collected from the currently active screen
+    stillPages = True
+    while stillPages == True:
+        #collectedPage helps loop and collect the current displayed page, not sure if its needed reeally.
+        collectedPage = False
+        if collectedPage == False:
+            #pageHrefs coollects and appends the Hyperlinks of products into a list.
+            PageHrefsE(n, word)
+            collectedPage = True
+            #nextPage returns true if it changes page and false if its fails and cannot
+            stillPages = NextPageE()
+            if stillPages == True:
+                n += 1
+                collectedPage = False
+            
+keywordFile = open("keyword-searches.txt", mode = "r")
+searchTerms = []
+for keyword in keywordFile:
+    c = keyword[0]
+    if c != "#":
+        searchTerms.append(keyword)
+        #print(keyword)
+
+# create window
+driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+# collects all the hyperlinks
+for term in searchTerms: #loops through search terms
+    OpenAmazonE() #open amazon
+    SearchAmazonE(term) #sends search term to driver
+    CollectHrefsE(term)
 
 
 

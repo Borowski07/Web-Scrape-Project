@@ -641,7 +641,6 @@ def createChromeWindow():
 
 
 def StartSearch():
-    
     try:
         for term in searchTerms: #loops through search terms
             OpenAmazon() #open amazon
@@ -674,7 +673,7 @@ def StartSearch():
                 ProductScreenshot(n) #proof screenshot
                 ImageCollection() #images from product thumbnails 
                 OCR_Image() #run OCR on images to extract text
-                time.sleep(random.choice(waitShort))
+                time.sleep(random.choice([60, 61, 59]))
                 n = n + 1
             #reset the href list as to not take up too much memory
             hrefs.clear()
@@ -693,7 +692,7 @@ def StartSearch():
 
 #%% starts the program
 print(datetime.today())
-#driver = createChromeWindow()
+driver = createChromeWindow()
 StartSearch()
 
 

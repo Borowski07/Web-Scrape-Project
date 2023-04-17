@@ -424,32 +424,35 @@ def ProductSeller():
         #print(seller)
         sellers.append(seller)
     except:
-        from selenium.webdriver.common.action_chains import ActionChains
-        buyingOptions = driver.find_element(By.ID, "buybox-see-all-buying-choices")
+        try:
+            from selenium.webdriver.common.action_chains import ActionChains
+            buyingOptions = driver.find_element(By.ID, "buybox-see-all-buying-choices")
         
-        #setup action driver
-        ac = ActionChains(driver)
-        #clicks on buying options button
-        ac.move_to_element(buyingOptions).click().perform()
+            #setup action driver
+            ac = ActionChains(driver)
+            #clicks on buying options button
+            ac.move_to_element(buyingOptions).click().perform()
 
-        time.sleep(random.choice(waitMedium))
-        #find the multiple sellers.
-        sellerNames = []
-        sellerOptions = driver.find_elements(By.XPATH, "//*[@Class='a-size-small a-link-normal']")
-        for seller in sellerOptions:
-            if(seller.text != ""):
-                #print(seller.text)
-                sellerNames.append(seller.text)
-        #create output of all names for database
-        outputName = ""
-        for sellerName in sellerNames:
-            outputName = outputName + sellerName + ", "
-        sellers.append(outputName)
-        #print(outputName)
-        crossButton = driver.find_element(By.XPATH, "//*[@id='all-offers-display']/span/div")
-        ac = ActionChains(driver)
-        #clicks on cross button so other parts of code an function properly
-        ac.move_to_element(crossButton).click().perform()
+            time.sleep(random.choice(waitMedium))
+            #find the multiple sellers.
+            sellerNames = []
+            sellerOptions = driver.find_elements(By.XPATH, "//*[@Class='a-size-small a-link-normal']")
+            for seller in sellerOptions:
+                if(seller.text != ""):
+                    #print(seller.text)
+                    sellerNames.append(seller.text)
+            #create output of all names for database
+            outputName = ""
+            for sellerName in sellerNames:
+                outputName = outputName + sellerName + ", "
+            sellers.append(outputName)
+            #print(outputName)
+            crossButton = driver.find_element(By.XPATH, "//*[@id='all-offers-display']/span/div")
+            ac = ActionChains(driver)
+            #clicks on cross button so other parts of code an function properly
+            ac.move_to_element(crossButton).click().perform()
+        except:
+            sellers.append("Item Currently Unavailable")
 
 # Manufacturer and ASIN
 def CollectAsinManufacturer():
@@ -745,7 +748,7 @@ for term in searchTerms: #loops through search terms
 #%%
 
 # #Counting the number of products for the proof image naming
-n = 62
+n = 0
 #
 stillCollecting = True
 
@@ -804,7 +807,7 @@ while(stillCollecting):
 driver.refresh()
 
 
-#%% trying to save only the page results hyperlinks and keyword used for searcsh
+#%% trying to save only the page results hyperlinks and keyword used for search
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -948,6 +951,164 @@ for term in searchTerms: #loops through search terms
     SearchAmazonE(term) #sends search term to driver
     CollectHrefsE(term)
 
+#%% read page results and collect specific product results
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+import time
+from datetime import datetime
+import random
+import pandas as pd
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import TimeoutException
+
+# set up waits to add some variability as to fool automated systems
+waitShort = [2, 3]
+waitMedium = [3, 4, 5, 6]
+waitLong = [5, 6, 7, 8]
+
+# this list will contain all the hyperlink references (hrefs) we find on the pages
+hrefs = []
+
+# collected information lists
+productName = [] #comes from Name function
+hyperlinks = [] #comes from 'core" function
+manufacturers = [] #comes from CollectAsinManufacturer function
+sellers = [] #comes from ProductSeller function
+asins = [] #comes from CollectAsinManufacturer function
+keywordUsed = [] #comes from 'core" function
+artgs = [] #comes from OCR_Image function
+descriptions = [] #comes from DescriptionText function
+productIngredients = [] #comes from FindIngredients function
+datesCollected = [] #comes from CollectDate fucntion
+imageProofName = [] #comes from ProductScreenshot function
+OcrResults = [] #comes from OCR_Image function
+
+
+# Collect screenshot of product screen
+def ProductScreenshotE(tally, name):
+    #formats the number to be a 6 digit number eg 1 will be 000001
+    number = "{0:0=2d}".format(tally)
+    #create the output name
+    screenshotName = name + "-product-" + number + ".png"
+    outputLocation = "Product Screenshots/"+ screenshotName
+    #print(outputLocation)
+    driver.save_screenshot(outputLocation)
+    imageProofName.append(screenshotName)
+
+
+import os
+
+
+# Get the list of all files and directories
+path = "Searches/"
+dir_list = os.listdir(path)
+
+for file in dir_list:
+    csvName = file.replace(".csv", "")
+    csvName = csvName.strip()
+    file = "Searches/" + file
+
+    # This resets the lists so we can fill them all equally
+    hrefs.clear()
+    productName.clear()
+    hyperlinks.clear()
+    manufacturers.clear()
+    sellers.clear()
+    asins.clear()
+    keywordUsed.clear()
+    artgs.clear()
+    descriptions.clear()
+    productIngredients.clear()
+    datesCollected.clear()
+    imageProofName.clear()
+    OcrResults.clear()
+
+    #read file into dataframe
+    import pandas as pd
+    results_df = pd.read_csv(file, sep=',', encoding="utf-8", skipinitialspace=True)
+    hyperlinks = results_df['Hyperlink'].to_list()
+    keywordUsed = results_df['SearchKeywords'].to_list()
+    print(len(hyperlinks))
+    print(len(keywordUsed))
+#%%
+
+    #create window
+    driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+
+    i = 1
+    for href in hyperlinks:
+        print(str(i) + " - " + href)
+        if "primevideo" in href:
+            productName.append(" ")
+            manufacturers.append(" ")
+            sellers.append(" ")
+            asins.append(" ")
+            keywordUsed.append(" ")
+            artgs.append(" ")
+            descriptions.append(" ")
+            productIngredients.append(" ")
+            datesCollected.append(" ")
+            imageProofName.append(" ")
+            OcrResults.append(" ")
+        else:
+            driver.get(href)
+            time.sleep(random.choice(waitMedium)) #wait for page to load
+            #sometimes Amazon will redirect you elsewhere
+            current = driver.current_url
+            if "www.primevideo.com" in current:
+                #time.sleep(300)
+                #driver.quit()
+                pass
+            
+            CollectDate() #date collected
+            #hyperlinks.append(hrefs[i])
+                #keyword search
+                #print(searchTerm)
+            #keywordUsed.append(term)
+            Name() #collect name of product
+            FindIngredients() #collect ingredients
+            DescriptionText() #collect product infromation under the "about this item" section
+            CollectAsinManufacturer() #manufacturer and ASIN
+            ProductSeller() #find seller
+            ProductScreenshotE(i, csvName) #proof screenshot
+            ImageCollection() #images from product thumbnails 
+            OCR_Image() #run OCR on images to extract text
+            time.sleep(random.choice(waitShort))
+        i += 1
+
+    driver.quit()
+
+    import pandas as pd
+    data = {
+        'Name' : productName,
+        'Hyperlink' : hyperlinks,
+        'Manufacturer' : manufacturers,
+        'Seller' : sellers,
+        'ASIN' : asins,
+        'SearchKeywords' : keywordUsed,
+        'ARTG' : artgs,
+        'Description' : descriptions,
+        'Ingredients' : productIngredients,
+        'DateCollected' : datesCollected,
+        'ImageProofName' : imageProofName,
+        'OCR_Results' : OcrResults
+    }
+    df = pd.DataFrame(data)
+    df.to_csv(csvName + '-results.csv')
+    #delete csv file once we're done with it
+    Delete_Image(file)
+
+    # opening vs code with MSI afterburner running is 6400MB in RAM
+    # after it started running it jumped to 7600MB
+    # 
 
 
 #%% Output infromation to a csv file
@@ -967,9 +1128,7 @@ data = {
     'OCR_Results' : OcrResults
 }
 df = pd.DataFrame(data)
-date = str(datetime.today().strftime('%Y-%m-%d'))
-date = date.replace("/", "-")
-df.to_csv('web-scrape-export_' + date + '.csv')
+df.to_csv(csvName + "-results" + '.csv')
 
 
 #%%

@@ -1,5 +1,5 @@
 # Author:  Matthew Borowski
-# Date Created: Monday 20/02/2023 16:10 
+# Date Created: Monday 17/04/2023 10:13 
 # Project Name: Detecting non-compliance therapeutic goods selling on e-commerce websites.
 # Project Group ID: 9785-23-06
 
@@ -379,7 +379,7 @@ def CollectDate():
 # Collect ingredients
 def FindIngredients():
     ingredients = ""
-    ingredName = "Ingredients:"
+    ingredName = "Ingredients"
     try:
         #section = driver.find_element(By.ID, "important-information")
         #ingredients = driver.find_element()
@@ -392,7 +392,8 @@ def FindIngredients():
         
         for infoSec in infoSections:
             i += 1
-            if infoSec.text == ingredName:
+            if ingredName in infoSec.text:
+            #if infoSec.text == ingredName:
                 # the [2] on the end was added because it originally didnt need it but it it wouldnt pick anything up
                 # if this continues, I will need ot do a if null check and continue onto the next one to collect info.
                 if i == "1":
@@ -538,53 +539,57 @@ def OCR_Image():
         ocr_result = ocr_result.replace("\n", " ")
         
         OCR_Results.append(ocr_result)
-        ARTG_L = ""
-        ARTG_R = ""
+        #use lower so we can just find patterns and not specific upper/lowercase situations
+        #results will still be taken from the uppercase ocr results
+        ocr_lower = ocr_result.lower()
+        OCR_ArtgResult = []
         try:
-            startIndex = ocr_result.find("AUST L")
+            startIndex = ocr_lower.find("aust l")
             endIndex = startIndex + 13
-            ARTG_L = ocr_result[startIndex:endIndex].strip()
+            OCR_ArtgResult.append(ocr_result[startIndex:endIndex].strip()) 
         except:
-            ARTG_L = ""
-        
+            pass
         try:
-            startIndex = ocr_result.find("AUSTL ")
+            startIndex = ocr_lower.find("austl ")
             endIndex = startIndex + 12
-            ARTG_L = ocr_result[startIndex:endIndex].strip()
+            OCR_ArtgResult.append(ocr_result[startIndex:endIndex].strip())
         except:
-            ARTG_L = ""
+            pass
         try:
-            startIndex = ocr_result.find("AUSTL")
+            startIndex = ocr_lower.find("austl")
             endIndex = startIndex + 11
-            ARTG_L = ocr_result[startIndex:endIndex].strip()
+            OCR_ArtgResult.append(ocr_result[startIndex:endIndex].strip())
         except:
-            ARTG_L = ""
+            pass
         try:
-            startIndex = ocr_result.find("AUST R")
+            startIndex = ocr_lower.find("aust r")
             endIndex = startIndex + 13
-            ARTG_R = ocr_result[startIndex:endIndex].strip()
+            OCR_ArtgResult.append(ocr_result[startIndex:endIndex].strip())
         except:
-            ARTG_R = ""
+            pass
         try:
-            startIndex = ocr_result.find("AUSTR ")
+            startIndex = ocr_lower.find("austr ")
             endIndex = startIndex + 12
-            ARTG_L = ocr_result[startIndex:endIndex].strip()
+            OCR_ArtgResult.append(ocr_result[startIndex:endIndex].strip())
         except:
-            ARTG_L = ""
+            pass
         try:
-            startIndex = ocr_result.find("AUSTR")
+            startIndex = ocr_lower.find("austrs")
             #this test is because the word 'AUSTRALIA' would be picked up mistakenly
             #this isnt an issue for the other tests.
             testIndex = startIndex + 5
-            testLetter = ocr_result[testIndex]
+            testLetter = ocr_lower[testIndex]
             if testLetter != "A": 
                 endIndex = startIndex + 12
-                ARTG_L = ocr_result[startIndex:endIndex].strip()
+                OCR_ArtgResult.append(ocr_result[startIndex:endIndex].strip())
         except:
-            ARTG_L = ""
-
-        artgFinal = ARTG_L + " " +ARTG_R
-        #print(artgFinal)
+            pass
+        
+        artgFinal = ""
+        if len(OCR_ArtgResult) >= 1:
+            for info in OCR_ArtgResult:
+                artgFinal = artgFinal + " " + info
+                #print(artgFinal)
         ArtgResults.append(artgFinal)
 
         Delete_Image(file)
@@ -902,14 +907,15 @@ def PageHrefsE(n, keyword):
         #adds href link to end of list of links
         pageHrefs.append(prod.get_attribute("href"))
         pageKeyword.append(keyword)
-        date = str(datetime.today().strftime('%Y-%m-%d'))
-        pageDateCollected.append(date)
+        #date = str(datetime.today().strftime('%Y-%m-%d'))
+        #pageDateCollected.append(date)
     # export page of things with 
     import pandas as pd
     data = {
         'Hyperlink' : pageHrefs,
-        'SearchKeywords' : pageKeyword,
-        'DateCollected' : pageDateCollected
+        'SearchKeywords' : pageKeyword
+        #,
+        #'DateCollected' : pageDateCollected
     }
     df = pd.DataFrame(data)
     keyword = keyword.strip()
@@ -1036,9 +1042,9 @@ for file in dir_list:
     results_df = pd.read_csv(file, sep=',', encoding="utf-8", skipinitialspace=True)
     hyperlinks = results_df['Hyperlink'].to_list()
     keywordUsed = results_df['SearchKeywords'].to_list()
-    print(len(hyperlinks))
-    print(len(keywordUsed))
-#%%
+    #print(len(hyperlinks))
+    #print(len(keywordUsed))
+
 
     #create window
     driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
@@ -1051,7 +1057,6 @@ for file in dir_list:
             manufacturers.append(" ")
             sellers.append(" ")
             asins.append(" ")
-            keywordUsed.append(" ")
             artgs.append(" ")
             descriptions.append(" ")
             productIngredients.append(" ")
@@ -1133,6 +1138,178 @@ df.to_csv(csvName + "-results" + '.csv')
 
 #%%
 
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+import time
+from datetime import datetime
+import random
+
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import TimeoutException
+
+# set up waits to add some variability as to fool automated systems
+waitShort = [2, 3]
+waitMedium = [3, 4, 5, 6]
+waitLong = [5, 6, 7, 8]
+
+######################################################################################################
+# WS is shorthand for whole search which is across the whole vitamins and minerals section on amazon #
+######################################################################################################
+
+# Collects the hyperlink references from the product results page
+def PageHrefsWS(n, keyword):
+    import time
+    #wait so the website can load (possible problem with slower connections.)
+    time.sleep(random.choice(waitMedium))
+    # find all the products on the page by using an XPATH search to find all 
+    products = driver.find_elements(By.XPATH, "//*[@class='a-link-normal s-no-outline']")
+    # lists of info for collected products for this page
+    pageHrefs = []
+    pageKeyword = []
+    #pageDateCollected = []
+    # loop through all the product elements and collect their href links.
+    for prod in products:
+        #print(prod.get_attribute("href"))
+        #adds href link to end of list of links
+        pageHrefs.append(prod.get_attribute("href"))
+        pageKeyword.append(keyword)
+        #date = str(datetime.today().strftime('%Y-%m-%d'))
+        #pageDateCollected.append(date)
+    # export page of things with 
+    import pandas as pd
+    data = {
+        'Hyperlink' : pageHrefs,
+        'SearchKeywords' : pageKeyword
+        #,
+        #'DateCollected' : pageDateCollected
+    }
+    df = pd.DataFrame(data)
+    keyword = keyword.strip()
+    keyword = keyword.replace("&" , "")
+    keyword = keyword.replace("'" , "")
+    df.to_csv(keyword + '-page-' + str(n) + '.csv')
+
+# Collects the hyperlink references from the product results page
+def PageHrefsWSNew(n, i, keyword):
+    import time
+    #wait so the website can load (possible problem with slower connections.)
+    time.sleep(random.choice(waitMedium))
+    # find all the products on the page by using an XPATH search to find all 
+    products = driver.find_elements(By.XPATH, "//*[@class='a-link-normal s-no-outline']")
+    # lists of info for collected products for this page
+    pageHrefs = []
+    pageKeyword = []
+    #pageDateCollected = []
+    # loop through all the product elements and collect their href links.
+    for prod in products:
+        #print(prod.get_attribute("href"))
+        #adds href link to end of list of links
+        pageHrefs.append(prod.get_attribute("href"))
+        pageKeyword.append(keyword)
+        #date = str(datetime.today().strftime('%Y-%m-%d'))
+        #pageDateCollected.append(date)
+    # export page of things with 
+    import pandas as pd
+    data = {
+        'Hyperlink' : pageHrefs,
+        'SearchKeywords' : pageKeyword
+        #,
+        #'DateCollected' : pageDateCollected
+    }
+    df = pd.DataFrame(data)
+    keyword = keyword.strip()
+    keyword = keyword.replace("&" , "")
+    keyword = keyword.replace("'" , "")
+    pageNum = (n *40) + i
+    df.to_csv(keyword + '-page-' + str(pageNum) + '.csv')
+
+print("------------------------------------")
+print("started process at: " + str(datetime.today()))
+print("------------------------------------")
+
+#URL for the entire vitamin and supplements range
+URL = "https://www.amazon.com.au/gp/browse.html?node=5148202051&ref_=nav_em_hpc_vitamins_0_2_16_11"
+term = "Vitamins and Supplements"
+
+#create window
+driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+#goes to URL in the chrome window
+driver.get(URL)
+time.sleep(3) #wait for page to laod
+
+#finds the final page number and makes it an int that can be used later
+lastPageNum = driver.find_element(By.XPATH, "//*[@class = 's-pagination-strip']//span[4]").text
+lastPageInt = int(lastPageNum)
+
+#goes to next page
+from selenium.webdriver.common.action_chains import ActionChains
+nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
+ac = ActionChains(driver)
+ac.move_to_element(nextButton).click().perform()
+
+#This will save the base URL that we will manipulate later
+URL_Base =  driver.current_url
+
+time.sleep(3)
+driver.quit() #kills the window
+
+#i = 1
+#while i < lastPageInt:
+#    try:
+#        # create window
+#        driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+#        replacementPageNum = "page=" + str(i)
+#        URL_New = URL_Base.replace("page=2", replacementPageNum)
+#        driver.get(URL_New)
+#        PageHrefsWS(i, term)
+#
+#        time.sleep(random.choice(waitShort))
+#        driver.quit()
+#        print("page " + str(i) + " at " + str(datetime.today()))
+#        i += 1
+#    except:
+#        pass
+URL_Previous = "https://www.amazon.com.au/gp/browse.html?node=5148202051&ref_=nav_em_hpc_vitamins_0_2_16_11"
+
+#find out the amount of loops needed when taking 40 pages at a time.
+import math
+totalIterations = math.ceil(lastPageInt/40)
+n = 0
+while n < totalIterations:
+    try:
+        i = 1
+        driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+        #load amazon page
+        driver.get(URL_Previous)
+        while i < 40:
+            #collect info from page and saves out to csv file
+            PageHrefsWSNew(n, i, keyword)
+            
+            #move onto next page
+            from selenium.webdriver.common.action_chains import ActionChains
+            nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
+            ac = ActionChains(driver)
+            ac.move_to_element(nextButton).click().perform()
+
+            #save page in case its the last page to be collected.
+            URL_Previous = driver.current_url
+
+            time.sleep(random.choice(waitShort))
+            i += 1
+        n += 1
+    except:
+        pass
+
+
+print("------------------------------------")
+print("completed all" + str(datetime.today()))
+print("------------------------------------")
 
 
 #%% Wrapping up procedures

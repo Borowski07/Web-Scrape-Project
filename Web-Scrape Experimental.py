@@ -24,7 +24,19 @@ root.withdraw()
 SaveLocation = filedialog.askdirectory()
 #print(SaveLocation)
 
-#%%
+foldersToMake = ["Searches", "Product Images", "Product Screenshots", "Web Scrape Information", "Results"]
+
+
+for folderName in foldersToMake:
+    newpath = SaveLocation + "/" + folderName
+    if not os.path.exists(newpath):
+        os.makedirs(newpath)
+
+#%% test to see if the lcoation based saving works.
+import pandas as pd
+df = pd.read_csv("product_info.csv")
+
+df.to_csv(SaveLocation + '/Results/' + 'product_information.csv')
 
 #%% Selenium Driver Setup (chrome window)
 
@@ -75,14 +87,6 @@ driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()), op
 #searchBar.send_keys(searchTerm)
 #searchBar.send_keys(Keys.ENTER)
 
-#%% 
-
-
-
-
-
-
-
 #%% list creation
 
 # set up waits to add some variability as to fool automated systems
@@ -128,9 +132,9 @@ poison_regexes = [re.compile(rf"\b{re.escape(p)}\b") for p in poison_set]
 
 # ------ Therapuetic Claim Check ------ 
 #imports claim words/phrases from csv file
-claimTermsTable = pd.read_csv("claim-terms.csv", usecols=["Keyword"], squeeze=True) 
+claimTermsTable = pd.read_csv("claim-terms.csv") 
 #converts description to list
-claimTerms = claimTermsTable.to_list() 
+claimTerms = claimTermsTable['Keyword'].to_list()
 
 
 # ------ ARTG Number Check ------ 
@@ -221,7 +225,7 @@ def CheckTherpeuticClaims():
     #number_claims = []
     for descript in descriptions: #goes through each description
         #print(descript)
-        descript = descript.lower()
+        descript = descript.lower() #this could be a problem for words like AIDS and aids have 2 different intentions/meanings
         #print(descript)
         bad_claims = 0
         for keyword in claimTerms: #goes through each keyword for each description 
@@ -352,7 +356,7 @@ def ImageCollection():
         number = "{0:0=2d}".format(x)
         #create the output name
         proofName = "image"+ number + ".png"
-        outputLocation = "Product Images/"+ proofName
+        outputLocation = SaveLocation + "/Product Images/"+ proofName
         
         #saving image thats found on image webpage
         with open (outputLocation, 'wb') as file:
@@ -379,7 +383,7 @@ def CollectDate():
 # Collect ingredients
 def FindIngredients():
     ingredients = ""
-    ingredName = "Ingredients"
+    ingredName = "Ingred"
     try:
         #section = driver.find_element(By.ID, "important-information")
         #ingredients = driver.find_element()
@@ -392,13 +396,15 @@ def FindIngredients():
         
         for infoSec in infoSections:
             i += 1
-            if ingredName in infoSec.text:
+            if ingredName in str(infoSec.text):
+                print(ingredName + " not in "+ infoSec.text)
+                print(i)
             #if infoSec.text == ingredName:
                 # the [2] on the end was added because it originally didnt need it but it it wouldnt pick anything up
                 # if this continues, I will need ot do a if null check and continue onto the next one to collect info.
-                if i == "1":
+                if i == 1:
                     ingredients = driver.find_element(By.XPATH, "//*[@id='important-information']/div[1]/p[2]").text
-                elif i == "2":
+                elif i == 2:
                     ingredients = driver.find_element(By.XPATH, "//*[@id='important-information']/div[2]/p[2]").text
                 else:
                     ingredients = driver.find_element(By.XPATH, "//*[@id='important-information']/div[3]/p[2]").text
@@ -504,7 +510,7 @@ def ProductScreenshot(tally):
     number = "{0:0=6d}".format(tally)
     #create the output name
     screenshotName = "proof"+ number + ".png"
-    outputLocation = "Product Screenshots/"+ screenshotName
+    outputLocation = SaveLocation  + "/Product Screenshots/"+ screenshotName
     #print(outputLocation)
     driver.save_screenshot(outputLocation)
     imageProofName.append(screenshotName)
@@ -521,11 +527,11 @@ def OCR_Image():
     ArtgResults = []
 
     # Get the list of all files and directories
-    path = "Product Images/"
+    path = SaveLocation + "/Product Images/"
     dir_list = os.listdir(path)
 
     for file in dir_list:
-        file = "Product Images/" + file
+        file = SaveLocation + "/Product Images/" + file
 
         #original image, no preprocessing
         #im_file = "Product Images/image01.png"
@@ -808,7 +814,7 @@ while(stillCollecting):
 
 
 #%%
-
+driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
 driver.refresh()
 
 
@@ -919,7 +925,7 @@ def PageHrefsE(n, keyword):
     }
     df = pd.DataFrame(data)
     keyword = keyword.strip()
-    keyword = keyword.replace("&" , "")
+    keyword = keyword.replace(" & " , "")
     keyword = keyword.replace("'" , "")
     df.to_csv(keyword + '-page-' + str(n) + '.csv')
 
@@ -1004,7 +1010,7 @@ def ProductScreenshotE(tally, name):
     number = "{0:0=2d}".format(tally)
     #create the output name
     screenshotName = name + "-product-" + number + ".png"
-    outputLocation = "Product Screenshots/"+ screenshotName
+    outputLocation = SaveLocation + "/Product Screenshots/"+ screenshotName
     #print(outputLocation)
     driver.save_screenshot(outputLocation)
     imageProofName.append(screenshotName)
@@ -1136,7 +1142,7 @@ df = pd.DataFrame(data)
 df.to_csv(csvName + "-results" + '.csv')
 
 
-#%%
+#%% This will collect all the vitamins and minerals from amazon from its highest departmnet section
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -1282,15 +1288,16 @@ import math
 totalIterations = math.ceil(lastPageInt/40)
 n = 0
 while n < totalIterations:
-    try:
-        i = 1
-        driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
-        #load amazon page
-        driver.get(URL_Previous)
-        while i < 40:
-            #collect info from page and saves out to csv file
-            PageHrefsWSNew(n, i, keyword)
-            
+    i = 1
+    driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+    #load amazon page
+    driver.get(URL_Previous)
+    time.sleep(random.choice(waitMedium))
+    while i <= 40:
+        time.sleep(random.choice(waitMedium))
+        #collect info from page and saves out to csv file
+        PageHrefsWSNew(n, i, term)
+        try:
             #move onto next page
             from selenium.webdriver.common.action_chains import ActionChains
             nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
@@ -1299,22 +1306,178 @@ while n < totalIterations:
 
             #save page in case its the last page to be collected.
             URL_Previous = driver.current_url
-
-            time.sleep(random.choice(waitShort))
-            i += 1
-        n += 1
-    except:
-        pass
+        except:
+            pass
+        i += 1
+    driver.quit()
+    time.sleep(random.choice(waitMedium))
+    n += 1
 
 
 print("------------------------------------")
-print("completed all" + str(datetime.today()))
+print("completed all at: " + str(datetime.today()))
 print("------------------------------------")
 
+#%% checking the data
 
-#%% Wrapping up procedures
+import pandas as pd
+import re
+
+# ------ Poison Check ------ 
+# Read poison ingredients from CSV files
+poison_df = pd.read_csv('poison_list.csv', encoding='iso-8859-1')
+# Create a set of poisonous substances for faster lookup
+poison_set = set(poison_df['poison'].str.lower())
+# Compile regular expressions for checking ingredient names against poisons
+poison_regexes = [re.compile(rf"\b{re.escape(p)}\b") for p in poison_set]
+
+
+# ------ Therapuetic Claim Check ------ 
+#imports claim words/phrases from csv file
+claimTermsTable = pd.read_csv("claim-terms.csv") 
+#converts description to list
+claimTerms = claimTermsTable['Keyword'].to_list() 
+
+
+# ------ ARTG Number Check ------ 
+# Read ARTG list CSV file into a pandas DataFrame
+artg_list = pd.read_csv('artg_list.csv')
+# Extract the set of unique manufacturers from the ARTG list DataFrame
+artg_manufacturers = set(artg_list['Sponsor Name'].str.strip().str.lower())
+
+complianceSystemGuess = [] #comes from the complianceSystemGuess() function
+complianceSystemCorrect = [] #complianceSystemCorrectness() function
+
+import pandas as pd
+artgSponsorList = pd.unique(artg_list['Sponsor Name'].to_list())
 
 
 
 
-# %%
+
+
+#%%
+import pandas as pd
+df = pd.read_csv('product_info.csv')
+
+artgs = df['ARTG Number'].to_list()
+manufacturers = df['Manufacturer'].to_list()
+descriptions = df['Description'].to_list()
+productIngredients = df['Ingredients'].to_list()
+
+# results lists
+compliancePoison = [] #comes from PoisonCheck fucntion
+complianceARTG = [] #comes from CheckARTG function
+therapueticClaims = [] #comes from CheckTherpeuticClaims function
+complianceFinal = []
+
+def CheckARTGNew():
+    import random
+    for num in artgs:
+        test = random.choice(['compliant', 'non-compliant'])
+        complianceARTG.append(test)
+        print(test)
+    print("----------------------------------------------------------")
+
+
+# Checks ingredients and returns a bool of true or false based on if ingredeients are poisonous
+def CheckIngredientsNew(ingredients):
+    # checks if the ingredfentis are blank or NaN and sets it to blank
+    if pd.isna(ingredients):
+        # If ingredients is NaN, convert it to an empty string
+        ingredients = ""
+    #checks to see if poison list is anythign but a string
+    elif not isinstance(ingredients, str):
+        # If ingredients is not a string, convert it to a string
+        ingredients = str(ingredients)
+    for ingredient in ingredients.split(","):
+        ingredient = ingredient.strip()  # Remove leading/trailing spaces
+        # Check if the ingredient name exactly matches a poison in the poison set
+        if ingredient.lower() in poison_set:
+            #contains poison
+            return False 
+        # Check if any variation of the ingredient name is a match to a poison in the poison set
+        if any(regex.search(ingredient.lower()) for regex in poison_regexes):
+            #contains poison
+            return False 
+    #no poison detected
+    return True 
+
+# creates a list of compliant or non-compliant results
+def PoisonCheckNew():
+    for ingred in productIngredients:
+        safe = CheckIngredientsNew(ingred)
+        if safe == True:
+            compliancePoison.append("compliant")
+        else:
+            compliancePoison.append("non-compliant")
+
+# checks descriptions against claim keywords
+def CheckTherpeuticClaimsNew():
+    number_claims = []
+    for descript in descriptions: #goes through each description
+        descript = str(descript) #this works around the NaN that can occur when importing nothing in a cell
+        descript = descript.lower() #this could be a problem for words like AIDS and aids have 2 different intentions/meanings
+        #print(descript)
+        bad_claims = 0
+        for keyword in claimTerms: #goes through each keyword for each description 
+            keyword = keyword.lower() # converts dictionary to lowercase
+            if keyword in descript: # if keyword is in a description adds 1 to number of claims in number_claim variable
+                bad_claims += 1 
+        number_claims.append(bad_claims)
+        if bad_claims >= 1:
+            therapueticClaims.append("non-compliant")
+        else:
+            therapueticClaims.append("compliant")
+
+def ComplianceFinal():
+    complianceList = []
+    i = 0
+    while i < len(artgs):
+        complianceList.append(compliancePoison[i])
+        complianceList.append(complianceARTG[i])
+        complianceList.append(therapueticClaims[i])
+        if all(x == "compliant" for x in complianceList):
+            complianceFinal.append("compliant")
+        else:
+            complianceFinal.append("non-compliant")
+        i += 1
+        #print(complianceList)
+        complianceList.clear()
+    #for temp in complianceFinal:
+    #    print(temp)
+
+def ComplianceSystemGuess(manufacturer):
+    if manufacturer in artgSponsorList:
+        complianceSystemGuess.append('compliant')
+    else:
+        complianceSystemGuess.append('non-compliant')
+
+def ComplianceSystemCorrectness():
+    systemGuesses = []
+    i = 0
+    while i < len(complianceSystemGuess):
+        systemGuesses.append(complianceSystemGuess[i])
+        systemGuesses.append(complianceFinal[i])
+        if all(x == "compliant" for x in systemGuesses):
+            complianceSystemCorrect.append("Correct")
+        else:
+            complianceSystemCorrect.append("Incorrect")
+        i += 1
+        systemGuesses.clear()
+
+#%%
+#checks
+CheckARTGNew()
+PoisonCheckNew()
+CheckTherpeuticClaimsNew()
+ComplianceFinal()
+ComplianceSystemCorrectness()
+
+
+#%%
+
+
+
+
+

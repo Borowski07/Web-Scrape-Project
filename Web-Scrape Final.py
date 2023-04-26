@@ -731,7 +731,8 @@ compliancePoison = [] #comes from PoisonCheck fucntion
 complianceARTG = [] #comes from CheckARTG function
 therapueticClaims = [] #comes from CheckTherpeuticClaims function
 complianceFinal = [] #comes from the ComplianceFinal function
-complianceSystemGuess = [] #comes from the 
+complianceSystemGuess = [] #comes from the complianceSystemGuess function
+complianceSystemCorrect = [] #coems from the ComplianceSystemCorrectness function
 
 #need a loop here to go through all the files and collect 
 #df = pd.read_csv('product_info.csv')
@@ -741,6 +742,7 @@ manufacturers = dfCompiled['Manufacturer'].to_list()
 descriptions = dfCompiled['Description'].to_list()
 productIngredients = dfCompiled['Ingredients'].to_list()
 
+#%%
 
 #ARTG Check artg number and manufacturer.
 def CheckARTG():
@@ -863,33 +865,61 @@ def ComplianceFinal():
     #    print(temp)
 
 def ComplianceSystemGuess():
+    artgSponsorListTemp = [sponsor.lower() for sponsor in artgSponsorList]
+    print(artgSponsorListTemp)
     for manufacturer in manufacturers:
-        if manufacturer in artgSponsorList:
+        manufacturer = str(manufacturer).lower()
+        if manufacturer in artgSponsorListTemp:
             complianceSystemGuess.append('compliant')
         else:
             complianceSystemGuess.append('non-compliant')
 
 def ComplianceSystemCorrectness():
-    systemGuesses = []
     i = 0
     while i < len(complianceSystemGuess):
-        systemGuesses.append(complianceSystemGuess[i])
-        systemGuesses.append(complianceFinal[i])
-        if all(x == "compliant" for x in systemGuesses):
+        if complianceSystemGuess[i] == complianceFinal[i]:
             complianceSystemCorrect.append("Correct")
         else:
             complianceSystemCorrect.append("Incorrect")
         i += 1
-        systemGuesses.clear()
 
 #%%
-#checks
 
+#used for testing
+compliancePoison.clear()
+complianceARTG.clear()
+therapueticClaims.clear()
+complianceFinal.clear()
+complianceSystemGuess.clear()
+complianceSystemCorrect.clear()
+
+#checks
 CheckARTG()
 CheckPoison()
 CheckTherpeuticClaims()
 ComplianceFinal()
+ComplianceSystemGuess()
 ComplianceSystemCorrectness()
 
 
+
+#%%
+dfCompiled['CompPoison'] = compliancePoison
+dfCompiled['CompARTG'] = complianceARTG
+dfCompiled['CompTherapueticClaims'] = therapueticClaims
+dfCompiled['CompFinal'] = complianceFinal
+dfCompiled['CompSystemGuess'] = complianceSystemGuess
+dfCompiled['GuessOutcome'] = complianceSystemCorrect
+
+
+
 # %%
+
+
+CurrentTime = str(datetime.today().strftime('%Y-%m-%d'))
+#print(CurrentTime)
+dfCompiled.to_csv(SaveLocation + '/Results/'  + 'complete-results_' +  CurrentTime + '.csv')
+    
+# %%
+
+

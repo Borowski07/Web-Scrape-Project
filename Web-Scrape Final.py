@@ -907,7 +907,17 @@ CurrentTime = str(datetime.today().strftime('%Y-%m-%d'))
 dfCompiled.to_csv(SaveLocation + '/Results/'  + 'complete-results_' +  CurrentTime + '.csv')
 
 
+#%%
 
+#%% import packages
+import pandas as pd
+import numpy as np
+
+
+dfCompiled = pd.read_csv(SaveLocation + '/Results/' + 'complete-results_2023-04-26.csv')
+dfCompiled = dfCompiled.drop(dfCompiled.columns[0], axis = 1)
+
+#%%
 # find all the non-compliant products
 finalOutput = dfCompiled.loc[dfCompiled.CompFinal == 'non-compliant', :]
 CurrentTime = str(datetime.today().strftime('%Y-%m-%d'))

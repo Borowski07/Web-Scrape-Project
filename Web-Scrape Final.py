@@ -742,7 +742,7 @@ manufacturers = dfCompiled['Manufacturer'].to_list()
 descriptions = dfCompiled['Description'].to_list()
 productIngredients = dfCompiled['Ingredients'].to_list()
 
-#%%
+#%% Compliance checks
 
 #ARTG Check artg number and manufacturer.
 def CheckARTG():
@@ -794,8 +794,6 @@ def CheckARTG():
                         #print(f"{product['Name']}\nDoes not comply with ARTG regulations")
                         complianceARTG.append("non-compliant")
                         #pass
-        
-
 
 # Checks ingredients and returns a bool of true or false based on if ingredeients are poisonous
 def CheckIngredients(ingredients):
@@ -885,15 +883,7 @@ def ComplianceSystemCorrectness():
 
 #%%
 
-#used for testing
-compliancePoison.clear()
-complianceARTG.clear()
-therapueticClaims.clear()
-complianceFinal.clear()
-complianceSystemGuess.clear()
-complianceSystemCorrect.clear()
-
-#checks
+#complete system checks
 CheckARTG()
 CheckPoison()
 CheckTherpeuticClaims()
@@ -901,25 +891,27 @@ ComplianceFinal()
 ComplianceSystemGuess()
 ComplianceSystemCorrectness()
 
-
-
-#%%
+#add new columns and remove unwanted columns
 dfCompiled['CompPoison'] = compliancePoison
 dfCompiled['CompARTG'] = complianceARTG
 dfCompiled['CompTherapueticClaims'] = therapueticClaims
 dfCompiled['CompFinal'] = complianceFinal
 dfCompiled['CompSystemGuess'] = complianceSystemGuess
 dfCompiled['GuessOutcome'] = complianceSystemCorrect
+#have to drop this column as its the indexes from the smaller files
+dfCompiled = dfCompiled.drop(dfCompiled.columns[0], axis = 1)
 
-
-
-# %%
-
-
+#export csv file
 CurrentTime = str(datetime.today().strftime('%Y-%m-%d'))
 #print(CurrentTime)
 dfCompiled.to_csv(SaveLocation + '/Results/'  + 'complete-results_' +  CurrentTime + '.csv')
-    
+
+
+
+# find all the non-compliant products
+finalOutput = dfCompiled.loc[dfCompiled.CompFinal == 'non-compliant', :]
+CurrentTime = str(datetime.today().strftime('%Y-%m-%d'))
+# export the final non-compliant products
+finalOutput.to_csv(SaveLocation + '/Results/'  + 'non-compliant-results_' +  CurrentTime + '.csv')
+
 # %%
-
-

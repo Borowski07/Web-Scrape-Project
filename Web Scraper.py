@@ -35,6 +35,17 @@ for folderName in foldersToMake:
     if not os.path.exists(newpath):
         os.makedirs(newpath)
 
+#%% read setting file for setup
+
+keywordFile = open("keyword-searches.txt", mode = "r")
+searchTerms = []
+for keyword in keywordFile:
+    c = keyword[0]
+    if c != "#":
+        searchTerms.append(keyword)
+        #print(keyword)
+
+
 #%% import poison list, ARTG list and set up checking dependacies
 
 import pandas as pd
@@ -425,12 +436,12 @@ def OCR_Image():
         except:
             pass
         try:
-            startIndex = ocr_lower.find("austrs")
+            startIndex = ocr_lower.find("austr")
             #this test is because the word 'AUSTRALIA' would be picked up mistakenly
             #this isnt an issue for the other tests.
             testIndex = startIndex + 5
             testLetter = ocr_lower[testIndex]
-            if testLetter != "A": 
+            if testLetter != "a": 
                 endIndex = startIndex + 12
                 OCR_ArtgResult.append(ocr_result[startIndex:endIndex].strip())
         except:
@@ -519,67 +530,143 @@ print("------------------------------------")
 print("started process at: " + str(datetime.today()))
 print("------------------------------------")
 
-#URL for the entire vitamin and supplements range
-URL = "https://www.amazon.com.au/gp/browse.html?node=5148202051&ref_=nav_em_hpc_vitamins_0_2_16_11"
-term = "Vitamins and Supplements"
 
-#create window
-driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
-#goes to URL in the chrome window
-driver.get(URL)
-time.sleep(3) #wait for page to laod
+blanket = True
+if(len(searchTerms) > 0):
+    blanket = False
 
-#finds the final page number and makes it an int that can be used later
-lastPageNum = driver.find_element(By.XPATH, "//*[@class = 's-pagination-strip']//span[4]").text
-lastPageInt = int(lastPageNum)
+if(blanket == False):
+    for term in searchTerms:
+        # setup URL
+        URL = "https://www.amazon.com.au/"
+        
+        #create window
+        driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+        #goes to URL in the chrome window
+        #driver.get(URL)
+        #time.sleep(3) #wait for page to laod
 
-#goes to next page
-from selenium.webdriver.common.action_chains import ActionChains
-nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
-ac = ActionChains(driver)
-ac.move_to_element(nextButton).click().perform()
+        OpenAmazon()
+        SearchAmazon(term)
 
-#This will save the base URL that we will manipulate later
-URL_Base =  driver.current_url
 
-time.sleep(3)
-driver.quit() #kills the window
+        #finds the final page number and makes it an int that can be used later
+        lastPageNum = driver.find_element(By.XPATH, "//*[@class = 's-pagination-strip']//span[4]").text
+        lastPageInt = int(lastPageNum)
 
-URL_Previous = "https://www.amazon.com.au/gp/browse.html?node=5148202051&ref_=nav_em_hpc_vitamins_0_2_16_11"
+        #goes to next page
+        from selenium.webdriver.common.action_chains import ActionChains
+        nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
+        ac = ActionChains(driver)
+        ac.move_to_element(nextButton).click().perform()
 
-#find out the amount of loops needed when taking 40 pages at a time.
-import math
-totalIterations = math.ceil(lastPageInt/40)
-n = 0
-while n < totalIterations:
-    i = 1
+        #This will save the base URL that we will manipulate later
+        URL_Base =  driver.current_url
+
+        time.sleep(3)
+        driver.quit() #kills the window
+
+        URL_Previous = URL_Base
+
+        
+        #find out the amount of loops needed when taking 40 pages at a time.
+        import math
+        totalIterations = math.ceil(lastPageInt/40)
+        n = 0
+        while n < totalIterations:
+            i = 1
+            driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+            #load amazon page
+            driver.get(URL_Previous)
+            time.sleep(random.choice(waitMedium))
+            while i <= lastPageInt:
+                time.sleep(random.choice(waitMedium))
+                #collect info from page and saves out to csv file
+                PageHrefsWholeSearch(n, i, term)
+                try:
+                    #move onto next page
+                    from selenium.webdriver.common.action_chains import ActionChains
+                    nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
+                    ac = ActionChains(driver)
+                    ac.move_to_element(nextButton).click().perform()
+
+                    #save page in case its the last page to be collected.
+                    URL_Previous = driver.current_url
+                except:
+                    pass
+                i += 1
+            driver.quit()
+            time.sleep(random.choice(waitMedium))
+            n += 1
+
+    print("------------------------------------")
+    print("completed all at: " + str(datetime.today()))
+    print("------------------------------------")
+
+#this will just work through the top 'vitamins and supplements' department
+if(blanket == True):
+
+    #URL for the entire vitamin and supplements range
+    URL = "https://www.amazon.com.au/gp/browse.html?node=5148202051&ref_=nav_em_hpc_vitamins_0_2_16_11"
+    term = "Vitamins and Supplements"
+
+    #create window
     driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
-    #load amazon page
-    driver.get(URL_Previous)
-    time.sleep(random.choice(waitMedium))
-    while i <= 40:
+    #goes to URL in the chrome window
+    driver.get(URL)
+    time.sleep(3) #wait for page to laod
+
+    #finds the final page number and makes it an int that can be used later
+    lastPageNum = driver.find_element(By.XPATH, "//*[@class = 's-pagination-strip']//span[4]").text
+    lastPageInt = int(lastPageNum)
+
+    #goes to next page
+    from selenium.webdriver.common.action_chains import ActionChains
+    nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
+    ac = ActionChains(driver)
+    ac.move_to_element(nextButton).click().perform()
+
+    #This will save the base URL that we will manipulate later
+    URL_Base =  driver.current_url
+
+    time.sleep(3)
+    driver.quit() #kills the window
+
+    URL_Previous = "https://www.amazon.com.au/gp/browse.html?node=5148202051&ref_=nav_em_hpc_vitamins_0_2_16_11"
+
+    #find out the amount of loops needed when taking 40 pages at a time.
+    import math
+    totalIterations = math.ceil(lastPageInt/40)
+    n = 0
+    while n < totalIterations:
+        i = 1
+        driver = webdriver.Chrome(service = Service(ChromeDriverManager().install()))
+        #load amazon page
+        driver.get(URL_Previous)
         time.sleep(random.choice(waitMedium))
-        #collect info from page and saves out to csv file
-        PageHrefsWholeSearch(n, i, term)
-        try:
-            #move onto next page
-            from selenium.webdriver.common.action_chains import ActionChains
-            nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
-            ac = ActionChains(driver)
-            ac.move_to_element(nextButton).click().perform()
+        while i <= 40:
+            time.sleep(random.choice(waitMedium))
+            #collect info from page and saves out to csv file
+            PageHrefsWholeSearch(n, i, term)
+            try:
+                #move onto next page
+                from selenium.webdriver.common.action_chains import ActionChains
+                nextButton = driver.find_element(By.XPATH, "//*[@class = 's-pagination-item s-pagination-next s-pagination-button s-pagination-separator']")
+                ac = ActionChains(driver)
+                ac.move_to_element(nextButton).click().perform()
 
-            #save page in case its the last page to be collected.
-            URL_Previous = driver.current_url
-        except:
-            pass
-        i += 1
-    driver.quit()
-    time.sleep(random.choice(waitMedium))
-    n += 1
+                #save page in case its the last page to be collected.
+                URL_Previous = driver.current_url
+            except:
+                pass
+            i += 1
+        driver.quit()
+        time.sleep(random.choice(waitMedium))
+        n += 1
 
-print("------------------------------------")
-print("completed all at: " + str(datetime.today()))
-print("------------------------------------")
+    print("------------------------------------")
+    print("completed all at: " + str(datetime.today()))
+    print("------------------------------------")
 
 
 #%% This will run through all the search files and collect the product information
@@ -626,7 +713,7 @@ for file in dir_list:
 
     i = 1
     for href in hyperlinks:
-        print(str(i) + " - " + href)
+        #print(str(i) + " - " + href)
         if "primevideo" in href:
             productName.append(" ")
             manufacturers.append(" ")
@@ -907,12 +994,8 @@ CurrentTime = str(datetime.today().strftime('%Y-%m-%d'))
 dfCompiled.to_csv(SaveLocation + '/Results/'  + 'complete-results_' +  CurrentTime + '.csv')
 
 
-#%%
-
 #%% import packages
 import pandas as pd
-import numpy as np
-
 
 dfCompiled = pd.read_csv(SaveLocation + '/Results/' + 'complete-results_2023-04-26.csv')
 dfCompiled = dfCompiled.drop(dfCompiled.columns[0], axis = 1)

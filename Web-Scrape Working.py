@@ -641,51 +641,51 @@ def createChromeWindow():
 
 
 def StartSearch():
-    try:
-        for term in searchTerms: #loops through search terms
-            OpenAmazon() #open amazon
-            SearchAmazon(term) #sends search term to driver
-            CollectHrefs()
-            #Counting the number of products for the proof image naming
-            n = 0
+    #try:
+    for term in searchTerms: #loops through search terms
+        OpenAmazon() #open amazon
+        SearchAmazon(term) #sends search term to driver
+        CollectHrefs()
+        #Counting the number of products for the proof image naming
+        n = 0
 
-            #loop through all the products
-            for link in hrefs:
-                #Loads the product page using hyperlink from the resulkts page
-                driver.get(link)
-                time.sleep(random.choice(waitMedium)) #wait for page to load
-                #sometimes Amazon will redirect you elsewhere
-                current = driver.current_url
-                if "www.primevideo.com" in current:
-                    #time.sleep(300)
-                    #driver.refresh()
-                    pass
-                hyperlinks.append(link)
-                CollectDate() #date collected
-                    #keyword search
-                    #print(searchTerm)
-                keywordUsed.append(term)
-                Name() #collect name of product
-                FindIngredients() #collect ingredients
-                DescriptionText() #collect product infromation under the "about this item" section
-                CollectAsinManufacturer() #manufacturer and ASIN
-                ProductSeller() #find seller
-                ProductScreenshot(n) #proof screenshot
-                ImageCollection() #images from product thumbnails 
-                OCR_Image() #run OCR on images to extract text
-                time.sleep(random.choice([60, 61, 59]))
-                n = n + 1
-            #reset the href list as to not take up too much memory
-            hrefs.clear()
-        #just a timer, you could add whatever further functionality 
-        #after this point
-        time.sleep(30)
-    except:
-        print(datetime.today())
-        print(n)
-        #closes the window
-        #driver.quit()
-        
+        #loop through all the products
+        for link in hrefs:
+            #Loads the product page using hyperlink from the resulkts page
+            driver.get(link)
+            time.sleep(random.choice(waitMedium)) #wait for page to load
+            #sometimes Amazon will redirect you elsewhere
+            current = driver.current_url
+            if "www.primevideo.com" in current:
+                #time.sleep(300)
+                #driver.refresh()
+                pass
+            hyperlinks.append(link)
+            CollectDate() #date collected
+                #keyword search
+                #print(searchTerm)
+            keywordUsed.append(term)
+            Name() #collect name of product
+            FindIngredients() #collect ingredients
+            DescriptionText() #collect product infromation under the "about this item" section
+            CollectAsinManufacturer() #manufacturer and ASIN
+            ProductSeller() #find seller
+            ProductScreenshot(n) #proof screenshot
+            ImageCollection() #images from product thumbnails 
+            OCR_Image() #run OCR on images to extract text
+            time.sleep(random.choice([60, 61, 59]))
+            n = n + 1
+        #reset the href list as to not take up too much memory
+        hrefs.clear()
+    #just a timer, you could add whatever further functionality 
+    #after this point
+    time.sleep(30)
+    #except:
+    print(datetime.today())
+    print(n)
+    #closes the window
+    #driver.quit()
+    
 
 
 
